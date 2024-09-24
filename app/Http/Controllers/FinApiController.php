@@ -2,45 +2,38 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FinAPIAccessToken;
+use App\Services\FinAPIService;
 use App\Services\HelperServices;
+use Exception;
+use FinAPI\Client\Api\AuthorizationApi;
+use GuzzleHttp\Client;
 use Illuminate\Support\Facades\Log;
 
 class FinApiController extends Controller
 {
-    public function index()
-    {
-        return response()->json(['apiKeys' => config('finApi.default')]);
-    }
-
     public function getAccessToken()
-    {
-        $grantType = config('finApi.grant_type.client_credentials');
-        $clientId = config('finApi.default.clientId');
-        $clientSecret = config('finApi.default.clientSecret');
-        $finApiServerUrl = config('finApi.finApiServerUrl');
+    {        
+        $accessToken = FinAPIAccessToken::getAccessToken();
+        return response()->json($accessToken);
 
-        try {
-            $response = HelperServices::makeCurlHttpRequest($finApiServerUrl . '/api/v2/oauth/token/', 'POST', [
-                'grant_type' => $grantType,
-                'client_id' => $clientId,
-                'client_secret' => $clientSecret,
-            ]);
+        // $finApiServerUrl = config('finApi.finApiServerUrl');
 
-            if($response && isset($response->status)) {
-                return response()->json(['data' => $response], $response->status);
-            }
+        // try {
+        //     $response = HelperServices::makeCurlHttpRequest($finApiServerUrl . '/api/v2/oauth/token', 'POST', [
+        //         'grant_type' => $grantType,
+        //         'client_id' => $clientId,
+        //         'client_secret' => $clientSecret,
+        //     ]);
 
-            return response()->json(['data' => $response]);
+        //     if(!$response) {
+        //         return response()->json(['error' => 'No response from server'], 500);
+        //     }
 
-            // Log::info('Error getting access token', ['response' => $response]);
-           
-
-            // return response()->json(['error' => 'Error getting access token'], 500);
-
-        } catch (\Throwable $th) {
-            Log::info($th->getMessage());
-            return response()->json(['error' => $th->getMessage()], 500);
-        }
+        //     return response()->json(['data' => $response], status: isset($response->status)  ? $response->status : 500);
+        // } catch (\Throwable $th) {
+        //     Log::error($th->getMessage());
+        //     return response()->json(['error' => $th->getMessage()], 500);
+        // }
     }
-
 }

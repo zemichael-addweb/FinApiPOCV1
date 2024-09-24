@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d2b85ebde936d33033bca1084573f83d",
+    "content-hash": "85194efd0aff87aa924895b56f56e009",
     "packages": [
         {
             "name": "brick/math",
@@ -1049,64 +1049,6 @@
                 }
             ],
             "time": "2023-12-03T19:50:20+00:00"
-        },
-        {
-            "name": "ixudra/curl",
-            "version": "6.22.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ixudra/curl.git",
-                "reference": "ac1844e9770995a493fd92b6b18b254b1636f2d0"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ixudra/curl/zipball/ac1844e9770995a493fd92b6b18b254b1636f2d0",
-                "reference": "ac1844e9770995a493fd92b6b18b254b1636f2d0",
-                "shasum": ""
-            },
-            "require": {
-                "ext-curl": "*",
-                "illuminate/support": ">=4.0",
-                "php": ">=5.4.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Ixudra\\Curl\\CurlServiceProvider"
-                    ],
-                    "aliases": {
-                        "Curl": "Ixudra\\Curl\\Facades\\Curl"
-                    }
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Ixudra\\Curl\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Jan Oris",
-                    "email": "jan.oris@ixudra.be"
-                }
-            ],
-            "description": "Custom PHP Curl library for the Laravel framework - developed by Ixudra",
-            "homepage": "http://ixudra.be",
-            "keywords": [
-                "Ixudra",
-                "curl",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/ixudra/curl/issues",
-                "source": "https://github.com/ixudra/curl/tree/6.22.2"
-            },
-            "time": "2024-04-22T18:35:47+00:00"
         },
         {
             "name": "laravel/framework",
@@ -6415,6 +6357,66 @@
                 "source": "https://github.com/hamcrest/hamcrest-php/tree/v2.0.1"
             },
             "time": "2020-07-09T08:09:16+00:00"
+        },
+        {
+            "name": "laravel/breeze",
+            "version": "v2.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/laravel/breeze.git",
+                "reference": "8f4176b48eb9b7c4ddc5012d19e94003461f03da"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/laravel/breeze/zipball/8f4176b48eb9b7c4ddc5012d19e94003461f03da",
+                "reference": "8f4176b48eb9b7c4ddc5012d19e94003461f03da",
+                "shasum": ""
+            },
+            "require": {
+                "illuminate/console": "^11.0",
+                "illuminate/filesystem": "^11.0",
+                "illuminate/support": "^11.0",
+                "illuminate/validation": "^11.0",
+                "php": "^8.2.0",
+                "symfony/console": "^7.0"
+            },
+            "require-dev": {
+                "orchestra/testbench": "^9.0",
+                "phpstan/phpstan": "^1.10"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "Laravel\\Breeze\\BreezeServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Laravel\\Breeze\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Taylor Otwell",
+                    "email": "taylor@laravel.com"
+                }
+            ],
+            "description": "Minimal Laravel authentication scaffolding with Blade and Tailwind.",
+            "keywords": [
+                "auth",
+                "laravel"
+            ],
+            "support": {
+                "issues": "https://github.com/laravel/breeze/issues",
+                "source": "https://github.com/laravel/breeze"
+            },
+            "time": "2024-09-11T20:19:47+00:00"
         },
         {
             "name": "laravel/pint",
