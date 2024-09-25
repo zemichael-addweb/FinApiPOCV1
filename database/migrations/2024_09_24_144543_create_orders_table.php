@@ -13,14 +13,7 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
-            //     order_id: The Shopify order ID.
-            //     order_reference: A unique reference number associated with the order (this will be used by customers to make payments).
-            //     customer_name: Name of the customer (for fallback matching).
-            //     order_amount: The total amount of the order.
-            //     order_status: Current status of the order (pending, paid, canceled).
-            //     ordered_at: The date when the order was placed.
-            //     payment_deadline: A date field to track when the 7-day payment window expires.
-            //     is_b2b: A boolean field to indicate if this is a B2B customer order.
+            $table->foreignId('user_id')->nullable()->constrained()->noActionOnDelete();
             $table->string('order_id')->unique();
             $table->string('order_reference')->unique();
             $table->string('customer_name');
@@ -30,6 +23,7 @@ return new class extends Migration
             $table->timestamp('payment_deadline');
             $table->boolean('is_b2b');
             $table->timestamps();
+
         });
     }
 
@@ -38,6 +32,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropForeign(['user_id']);
+        });
+       
         Schema::dropIfExists('orders');
     }
 };

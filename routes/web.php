@@ -1,20 +1,34 @@
 <?php
 
+use App\Http\Controllers\DepositController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('home');
+})->name('home');
+
+Route::group([], function () {
+    Route::get('/make-payment', function () { return view('make-payment');})->name('makePayment');
 });
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::group(['middleware'=>['auth', 'verified']], function () {
+    Route::get('/dashboard', function () { return view('dashboard');})->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::resource('/profile', ProfileController::class);
+    Route::resource( '/orders', OrderController::class);
+    Route::resource( '/payments', PaymentController::class);
+    Route::resource( '/deposits', DepositController::class);
+    Route::get( '/settings', function (){ return view('home'); });
 });
 
 require __DIR__.'/auth.php';
+
+Route::prefix('admin')
+    ->middleware(EnsureUserIsAdmin::class)
+    ->group(function () {
+        Route::get('/checking', function(){return  'You are an admin';})->name('checking');
+});
