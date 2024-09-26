@@ -10,5 +10,5 @@ Route::get('/user', function (Request $request) {
 
 
 Route::group(['prefix' => 'v1'], function () {
-    Route::post('/get-access-token', [FinApiController::class, 'getAccessToken']);
+    Route::get('/get-access-token', [FinApiController::class, 'getAccessToken']);
 });

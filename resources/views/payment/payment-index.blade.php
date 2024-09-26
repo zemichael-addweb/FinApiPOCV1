@@ -1,7 +1,11 @@
 
 <x-app-layout>
     <x-slot name="header">
-        {{ __('Payment') }}
+        
+        <div class="flex flex-grow">
+            <span class="">{{ __('Payment') }}</span>
+            <a class="ms-auto" href="{{route('payments.create')}}">Make Payment</a>
+        </div>
     </x-slot>
 
     <x-slot name="slot">

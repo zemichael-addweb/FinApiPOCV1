@@ -11,10 +11,6 @@ Route::get('/', function () {
     return view('home');
 })->name('home');
 
-Route::group([], function () {
-    Route::get('/make-payment', function () { return view('make-payment');})->name('makePayment');
-});
-
 Route::group(['middleware'=>['auth', 'verified']], function () {
     Route::get('/dashboard', function () { return view('dashboard');})->name('dashboard');
 

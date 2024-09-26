@@ -152,7 +152,7 @@
                 @if (Route::has('login'))
                     <div class="-mx-3 ms-4 flex flex-1 gap-4">
                         <nav class="-mx-3 flex flex-1 justify-start m-3 align-middle">
-                            <a href="{{ url('/make-payment') }}"
+                            <a href="{{ route('payments.create') }}"
                                 class="rounded-md px-3 py-2 text-black  ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
                                 Make Payment
                             </a>
