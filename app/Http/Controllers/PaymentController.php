@@ -7,7 +7,6 @@ use App\Services\OpenApiEnumModelService;
 use Exception;
 use FinAPI\Client\Api\PaymentsApi;
 use FinAPI\Client\Configuration;
-use FinAPI\Client\Model\CreateDirectDebitParams;
 use FinAPI\Client\Model\CreateMoneyTransferParams;
 use FinAPI\Client\Model\Currency;
 use FinAPI\Client\Model\ISO3166Alpha2Codes;
