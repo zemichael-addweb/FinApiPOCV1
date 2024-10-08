@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->tinyInteger('type')->unsigned()->default(1); // 1 = Admin, 2 = B2B, 3 = B2C
             $table->rememberToken();
             $table->timestamps();
         });
