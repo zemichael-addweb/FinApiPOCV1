@@ -87,7 +87,7 @@
 
                         <ul class="flex h-auto flex-col overflow-y-auto">
                             <li>
-                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-gray-2 dark:border-strokedark dark:hover:bg-meta-4"
+                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-slate-2 dark:border-strokedark dark:hover:bg-meta-4"
                                     href="#">
                                     <p class="text-sm">
                                         <span class="text-black dark:text-white">Feature</span>
@@ -159,22 +159,22 @@
                         </nav>
                         <nav class="-mx-3 ms-4 flex flex-1 gap-4 justify-end m-3 border rounded-md border-slate-600 text-nowrap">
                             @auth
-                                <a href="{{ url('/dashboard') }}"
+                                {{-- <a href="{{ url('/payments.create') }}"
                                     class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
                                     Dashboard
-                                </a>
+                                </a> --}}
                             @else
                                 <a href="{{ route('login') }}"
                                     class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
                                     Log in
                                 </a>
 
-                                @if (Route::has('register'))
+                                {{-- @if (Route::has('register'))
                                     <a href="{{ route('register') }}"
                                         class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
                                         Register Business
                                     </a>
-                                @endif
+                                @endif --}}
                             @endauth
                         </nav>
                     </div>

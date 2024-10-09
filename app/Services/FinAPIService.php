@@ -25,7 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class FinAPIService {
-    
+
     public function __construct()
     {
         //
@@ -77,8 +77,6 @@ class FinAPIService {
         FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $formParams, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
-            // dump('Access Token : ', $responseBody);
-
             return json_decode($responseBody);
         }
 
@@ -108,8 +106,6 @@ class FinAPIService {
         FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $userDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
-            // dump('New Fin User : ', $responseBody);
-
             return json_decode($responseBody);
         }
 
@@ -138,8 +134,6 @@ class FinAPIService {
         FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
-            // dump('Form : ', $responseBody);
-
             return json_decode($responseBody);
         }
 
@@ -147,7 +141,60 @@ class FinAPIService {
         return null;
     }
 
-    public static function buildPaymentDetails($amount, $currencyCode)
+    public static function getFromDetails($userAccessToken, $formId)
+    {
+        $url = "https://webform-sandbox.finapi.io/api/webForms/{$formId}";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'X-Request-Id' => $requestId,
+                'Authorization' => 'Bearer ' . $userAccessToken,
+            ],
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['form_id',$formId], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Form!');
+        return null;
+    }
+
+    public static function getPaymentDetails($userAccessToken, $paymentId)
+    {
+        $url = "https://sandbox.finapi.io/api/v2/payments";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'X-Request-Id' => $requestId,
+                'Authorization' => 'Bearer ' . $userAccessToken,
+            ],
+            'query' => ['ids' => $paymentId]
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['ids' => $paymentId], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid payment!');
+        return null;
+    }
+
+    public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null)
     {
         $finApiPaymentRecipient = FinapiPaymentRecipient::first();
 
@@ -178,7 +225,7 @@ class FinAPIService {
                 "value" => $amount,
                 "currency" => $currencyCode,
             ],
-            // "purpose" => "Well done",
+            "purpose" => $finapiUserId ? "Payment for FinAPI User: $finapiUserId" : "Payment for FinAPI User",
             // "sepaPurposeCode" => "SALA",
             // "endToEndId" => "endToEndId"
         ];
@@ -198,43 +245,5 @@ class FinAPIService {
             "instantPayment" => false,
             "allowTestBank" => true
         ];
-    }
-    
-    public static function authenticate() {
-        $apiInstance = new AuthorizationApi(new Client());
-        $grant_type = self::getGrantType();
-        $client_id = self::getClientId();
-        $client_secret = self::getClientSecret();
-        $x_request_id = null;
-        $refresh_token = null;
-        $username = null;
-        $password = null;
-        
-        try {
-            $result = $apiInstance->getToken($grant_type, $client_id, $client_secret, $x_request_id, $refresh_token, $username, $password);
-
-            if($result && $result->getAccessToken()) {
-                $accessToken = new FinAPIAccessToken([
-                        'access_token' => $result->getAccessToken(),
-                        'token_type' => $result->getTokenType(),
-                        'scope' => $result->getScope(),
-                        'expires_in' => $result->getExpiresIn(),
-                        'refresh_token' => $result->getRefreshToken()
-                ]);
-
-                $accessToken->save();
-                Log::info('Token Updated Successfully', ['data'=>$result]);
-                return $accessToken;
-            }
-
-            Log::info('Error Updating Token', ['data' => $result]);
-            return  $result;
-        } catch (Exception $e) {
-            Log::info('Error Response', ['res',$e->getMessage(), 'status'=>$e->getCode(), 'file'=>$e->getFile(), 'line'=>$e->getLine()]);
-            $error = new stdClass();
-            $error->error = $e->getMessage();
-            $error->statusCode = $e->getCode();
-            return $error;
-        }
     }
 }

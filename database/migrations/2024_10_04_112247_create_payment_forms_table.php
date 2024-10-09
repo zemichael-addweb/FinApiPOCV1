@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('payment_forms', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->unsignedBigInteger('payment_id');
+            $table->unsignedBigInteger('finapi_user_id');
             $table->string('form_id', 128)->nullable();
             $table->string('form_url', 128)->nullable();
             $table->string('expire_time', 128)->nullable();
@@ -27,9 +28,10 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('payment_id')->references('id')->on('payments')->onDelete('cascade');
+            $table->foreign('finapi_user_id')->references('id')->on('finapi_users')->onDelete('cascade');
         });
     }
-    
+
     /**
      * Reverse the migrations.
      */

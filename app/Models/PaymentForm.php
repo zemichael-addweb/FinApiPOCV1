@@ -10,13 +10,13 @@ class PaymentForm extends Model
 
     protected $fillable = [
         'payment_id',
+        'finapi_user_id',
         'form_id',
         'form_url',
         'expire_time',
         'type',
         'status',
         'bank_connection_id',
-        // 'payment_id',
         'standing_order_id',
         'error_code',
         'error_message',
@@ -25,5 +25,9 @@ class PaymentForm extends Model
     public function payment()
     {
         return $this->belongsTo(Payment::class);
+    }
+    public function finapiUser()
+    {
+        return $this->belongsTo(FinapiUser::class, 'finapi_user_id', 'id');
     }
 }

@@ -40,139 +40,112 @@ class PaymentController extends Controller
     // resource controller
     public function index()
     {
-        return view('payment.payment-index');
+        $pageTitle = 'view-payment';
+        return view('payment.payment-index', ['pageTitle'=>$pageTitle]); // ! may list payments
     }
 
     public function create()
     {
-        return view('payment.payment-create');
+        $pageTitle = 'create-payment';
+        return view('payment.payment-create',  ['pageTitle'=>$pageTitle]);
     }
 
     public function store(Request $request)
     {
-        $structuredRemittanceInformation = $request->input('structured_remittance_information');
-        $accessToken = FinAPIAccessToken::getAccessToken()->access_token;
-
-        $config = Configuration::getDefaultConfiguration()->setAccessToken($accessToken);
-
-        Log::info('Config', ['conf' => $config]);
-
-        $apiInstance = new PaymentsApi(
-            new Client(),
-            $config
-        );
-
-        $money_transfer_params = [];
-
-        foreach ($request->input('counterpart_name') as $key => $counterpartName) {
-            $money_transfer_params[] = new MoneyTransferOrderParams([
-                'counterpart_name' => $request->input('counterpart_name')[$key],
-                'counterpart_iban' => $request->input('counterpart_iban')[$key],
-                'counterpart_bic' => $request->input('counterpart_bic')[$key],
-                'counterpart_bank_name' => $request->input('counterpart_bank_name')[$key],
-                'amount' => $request->input('amount')[$key],
-                'currency' => OpenApiEnumModelService::getEnumValue(Currency::class, $request->input('currency')[$key], Currency::USD),
-                'purpose' => $request->input('purpose')[$key],
-                'sepa_purpose_code' => $request->input('sepa_purpose_code')[$key],
-                'counterpart_address' => new MoneyTransferOrderParamsCounterpartAddress([
-                    'street' => $request->input('counterpart_address.street')[$key],
-                    'postCode' => $request->input('counterpart_address.post_code')[$key],
-                    'city' => $request->input('counterpart_address.city')[$key],
-                    'houseNumber' => $request->input('counterpart_address.house_number')[$key],
-                    'country' => OpenApiEnumModelService::getEnumValue(ISO3166Alpha2Codes::class, $request->input('counterpart_address.country')[$key], ISO3166Alpha2Codes::DE)
-                ]),
-                'end_to_end_id' => $request->input('end_to_end_id')[$key],
-                'structured_remittance_information' => [$structuredRemittanceInformation]
-            ]);
-        }
-
-        $create_money_transfer_params = new CreateMoneyTransferParams([
-            'account_id' => $request->input('account_id'),
-            'iban' => $request->input('iban'),
-            'bank_id' => $request->input('bank_id'),
-            'execution_date' => $request->input('execution_date'),
-            'money_transfers' => $money_transfer_params, // ! check here
-            'instant_payment' => $request->input('instant_payment'),
-            'single_booking' => $request->input('single_booking'),
-            'msg_id' => $request->input('msg_id')
-        ]);
-
-        Log::info('Body', ['bod' => $create_money_transfer_params]);
-        // dd($request->all(), $config, FinAPIAccessToken::getAccessToken()->access_token, $create_money_transfer_params);
-
-        $x_request_id = null;
-        try {
-            $result = $apiInstance->createMoneyTransfer($create_money_transfer_params, $x_request_id);
-            print_r($result);
-        } catch (Exception $e) {
-            echo 'Exception when calling PaymentsApi->createDirectDebit: ', $e->getMessage(), PHP_EOL;
-        }
+        return '404 Not Found';
     }
 
     public function show($id)
     {
-        return 'show';
+        return '404 Not Found';
     }
 
     public function edit($id)
     {
-        return 'edit';
+        return '404 Not Found';
     }
 
     public function update(Request $request, $id)
     {
-        return 'update';
+        return '404 Not Found';
     }
 
     public function destroy($id)
     {
-        return 'destroy';
+        return '404 Not Found';
+    }
+
+    public function fromCallback(Request $request)
+    {
+        dd($request->all());
+        return '404 Not Found';
     }
 
     public function redirectToFinAPIPaymentForm(Request $request){
         $amount = $request->input('amount');
         $currency = $request->input('currency');
-
-        $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
+        $confirmationNumber = $request->input('confirmationNumber');
+        try {
+            $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], $e->getCode());
+        }
 
         if ($accessToken) {
-            $userDetails = [
-                'id' => Str::random(),
-                'password' => 'hellopassword',
-                'email' => 'email@localhost.de',
-                'phone' => '+49 99 999999-999',
-                'isAutoUpdateEnabled' => true
-            ];
+            $email = $request->input('email');
+            $password = $request->input('password');
 
-            $finApiUser = FinAPIService::createFinApiUser($accessToken->access_token, $userDetails);
+            $user = auth()->user();
+
+            $finApiUser = $user ? FinapiUser::where('user_id', $user->id)->first() : FinapiUser::where('email', $email)->first();
+
+            if(!$finApiUser){
+                try{
+                    $fetchedFinApiUser = FinAPIService::createFinApiUser($accessToken->access_token, [
+                        'id' => Str::random(),
+                        'password' => $password,
+                        'email' => $email,
+                        // 'phone' => '+49 99 999999-999',
+                        'isAutoUpdateEnabled' => true
+                    ]);
+                    // {"id":"lOCOne5IisOKWzUN","password":"hellopassword","email":"email@localhost.de","phone":"+49 99 999999-999","isAutoUpdateEnabled":true}
+
+                    if($fetchedFinApiUser){
+                        $finApiUser = new FinapiUser([
+                            'user_id' => $user ? $user->id : null,
+                            'username' => $fetchedFinApiUser->id,
+                            'password' => $fetchedFinApiUser->password,
+                            'email' => $fetchedFinApiUser->email,
+                        ]);
+
+                        $finApiUser->save();
+                    }
+                } catch (Exception $e) {
+                    return response()->json(['error' => $e->getMessage()], $e->getCode());
+                }
+            }
 
             if ($finApiUser) {
-
-                 // {"id":"lOCOne5IisOKWzUN","password":"hellopassword","email":"email@localhost.de","phone":"+49 99 999999-999","isAutoUpdateEnabled":true}
-
-                $finApiUserDetails = new FinapiUser([
-                        'user_id' => auth()->user() ? auth()->user()->id : null,
-                        'username' => auth()->user() ? auth()->user()->name : 'NO_USERNAME', // !
-                        'password' => $finApiUser->password,
-                        'email' => $finApiUser->email,
-                ]);
-
-                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->id, $finApiUser->password);
+                try{
+                    $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                } catch (Exception $e) {
+                    return response()->json(['error' => $e->getMessage()], $e->getCode());
+                }
+                // {"access_token":"k3mvEvxNC4...","token_type":"bearer","refresh_token":"9Ld_45TcIO...","expires_in":3599,"scope":"all"}
 
                 if ($finApiUserAccessToken) {
-                    // {"access_token":"k3mvEvxNC4GYTzrtBU7KZE2o3uj2d05jOWkc8CfvOW9mZlG8ZUAR8RM8TahbaXRxUhASV4R0gHkmj8ApLA8RgiZkAG1GHMYgV9FIY9MrUaX3G2OgwCdnRZGpZtdF9Oc2","token_type":"bearer","refresh_token":"9Ld_45TcIOcx3w1oJjdRcqenRn_spharcIF2lPu8E8KEZuUIac69SaHC8YXdUwfcxtV2CFaAGbbgknpmvkWL6sC6ltA2dxeukNhLex4HcBMalSkXclWFO_Rfb0Xym0Ok","expires_in":3599,"scope":"all"}
 
-                    $finApiUserDetails->access_token = $finApiUserAccessToken->access_token;
-                    $finApiUserDetails->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
-                    $finApiUserDetails->refresh_token = $finApiUserAccessToken->refresh_token;
+                    $finApiUser->access_token = $finApiUserAccessToken->access_token;
+                    $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
+                    $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
 
-                    $finApiUserDetails->save();
+                    $finApiUser->save();
 
                     $payment = new Payment([
-                        'finapi_user_id' => $finApiUserDetails->id,
-                        'order_ref_number' => '123456', // TODO get this from shopify
+                        'finapi_user_id' => $finApiUser->id,
+                        'order_ref_number' => $confirmationNumber,
                         'amount' => $amount,
-                        'currency' => $currency, 
+                        'currency' => $currency,
                         'type' => 'ORDER', // TODO and this
                         'status' => 'PENDING',
                     ]);
@@ -181,20 +154,29 @@ class PaymentController extends Controller
 
                     $paymentDetails = FinAPIService::buildPaymentDetails(
                         $payment->amount,
-                        $payment->currency
+                        $payment->currency,
+                        $finApiUser->username,
                     );
 
-                    $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
+                    if(!$paymentDetails){
+                        return response()->json(['error' => 'Payment details could not be built. Plese contact system admin.'], 500);
+                    }
 
-                    // dump($finApiStandalonePaymentForm);
-                    // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
-                    
+                    try{
+                        $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
+                        // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
+                    } catch (Exception $e) {
+                        return response()->json(['error' => $e->getMessage()], $e->getCode());
+                    }
+
                     if($finApiStandalonePaymentForm) {
                         $formData = [
+                            'finapi_user_id' => $finApiUser->id,
                             'form_id' => $finApiStandalonePaymentForm->id,
                             'form_url' => $finApiStandalonePaymentForm->url,
                             'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                             'type' => $finApiStandalonePaymentForm->type,
+                            'standing_order_id' => $confirmationNumber
                         ];
                         FinApiLoggerService::logPaymentForm($payment->id, $formData);
 

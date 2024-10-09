@@ -24,6 +24,7 @@ class FinApiLoggerService
     {
         return PaymentForm::create([
             'payment_id' => $paymentId,
+            'finapi_user_id' => $formData['finapi_user_id'] ?? null,
             'form_id' => $formData['form_id'] ?? null,
             'form_url' => $formData['form_url'] ?? null,
             'expire_time' => $formData['expire_time'] ?? null,

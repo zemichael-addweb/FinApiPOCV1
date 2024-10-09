@@ -15,108 +15,85 @@
                 <img width="176" height="32" src="{{ asset('images/logo/fin-API-Logo_RGB.png') }}" alt="Logo" />
             </a>
             <!-- Sidebar Menu -->
-            <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{ selected: $persist('Dashboard') }">
+            <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{ selected: '{{ $pageTitle ?? '' }}' }">
                 <!-- Customer Menu Group -->
                 <div>
                     <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">Customer Menu</h3>
 
                     <ul class="mb-6 flex flex-col gap-1.5">
-                        <!-- Menu Item Dashboard -->
-                        <li>
-                            <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                href="/dashboard" @click="selected = (selected === 'Dashboard' ? '':'Dashboard')"
-                                :class="{ 'bg-graydark dark:bg-meta-4': (selected === 'dashboard') && (
-                                    page === 'dashboard') }">
-                                <i class="fa fa-dashboard me-1 text-blue f-10"></i>
-                                Dashboard
-                            </a>
-                        </li>
-                        <!-- Menu Item Dashboard -->
+                        @if(Auth()->user())
+                            <!-- Menu Item Deposits -->
+                            @if(Auth()->user()->role == 'admin')
+                            <!-- Menu Item Dashboard -->
+                            <li>
+                                <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
+                                    href="/dashboard" 
+                                    @click="selected = 'dashboard'"
+                                    :class="{ 'bg-graydark dark:bg-meta-4': selected === 'dashboard' || '{{ Request::is('dashboard*') }}' }">
+                                    <i class="fa fa-dashboard me-1 text-blue f-10"></i>
+                                    Dashboard
+                                </a>
+                            </li>
+                            <!-- Menu Item Dashboard -->
 
-                        <!-- Menu Item Orders -->
-                        <li>
-                            <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                href="/orders" @click="selected = (selected === 'Orders' ? '':'Orders')"
-                                :class="{ 'bg-graydark dark:bg-meta-4': (selected === 'Orders') && (page === 'orders') }"
-                                :class="page === 'orders' && 'bg-graydark'">
-                                <i class="fa fa-brands fa-shopify"></i>
-                                Orders
-                            </a>
-                        </li>
-                        <!-- Menu Item Orders -->
-
-                        <!-- Menu Item Payments -->
-                        <li>
-                            <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                href="#" @click.prevent="selected = (selected === 'payment' ? '':'payment')"
-                                :class="{ 'bg-graydark dark:bg-meta-4': (selected === 'payment') || (
-                                        page === 'ecommerce' || page === 'analytics' || page === 'stocks') }">
-                                <i class="fa-solid fa-money-bill-wave"></i>
-                                payment
-                                <i class="fa fa-chevron-up absolute right-4 top-1/2 -translate-y-1/2 fill-current me-1 text-blue f-10"
-                                    :class="{ 'rotate-180': (selected === 'payment') }" width="20"
-                                    height="20"></i>
-                            </a>
-
-                            <!-- Dropdown Menu Start -->
-                            <div class="translate transform overflow-hidden"
-                                :class="(selected === 'payment') ? 'block' : 'hidden'">
-                                <ul class="mb-5.5 mt-4 flex flex-col gap-2.5 pl-6">
-                                    <li>
-                                        <a class="group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white"
-                                            href="{{ route('payments.create') }}" :class="page === 'payments' && '!text-white'">Make
-                                            Payment
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="group relative flex items-center gap-2.5 rounded-md px-4 font-medium text-bodydark2 duration-300 ease-in-out hover:text-white"
-                                            href="{{ route('payments.index') }}" :class="page === 'payments' && '!text-white'"
-                                            :class="page === 'payments' && '!text-white'">Payments
-                                        </a>
-                                    </li>
-                                </ul>
-                            </div>
-                            <!-- Dropdown Menu End -->
-                        </li>
-                        <!-- Menu Item Payments -->
+                            <!-- Menu Item Orders -->
+                            <li>
+                                <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
+                                    href="/orders" 
+                                    @click="selected = 'orders'"
+                                    :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-orders' || '{{ Request::is('orders*') }}' }">
+                                    <i class="fa fa-brands fa-shopify"></i>
+                                    Orders
+                                </a>
+                            </li>
+                            <!-- Menu Item Orders -->
+                            <!-- Menu Users Settings -->
+                            <li>
+                                <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
+                                    href="/users" 
+                                    @click="selected = 'users'"
+                                    :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-users' || '{{ Request::is('users*') }}' }">
+                                    <i class="fa-solid fa-users"></i>
+                                    Users
+                                </a>
+                            </li>
+                            <!-- Menu Users Settings -->
+                            <!-- Menu Item Settings -->
+                            <li>
+                                <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
+                                    href="/settings" 
+                                    @click="selected = 'settings'"                                 
+                                    :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-settings' || '{{ Request::is('settings*') }}' }">
+                                    <i class="fa-solid fa-gear"></i>
+                                    Settings
+                                </a>
+                            </li>
+                            <!-- Menu Item Settings -->
+                            @endif
+                        @endif
 
                         <!-- Menu Item Deposits -->
                         <li>
                             <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                href="/deposits" @click="selected = (selected === 'deposits' ? '':'Deposits')"
-                                :class="{ 'bg-graydark dark:bg-meta-4': (selected === 'deposits') && (page === 'deposits') }"
-                                :class="page === 'deposits' && 'bg-graydark'">
+                                href="/deposits"
+                                @click="selected = 'deposits'"
+                                :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-deposits' || '{{ Request::is('deposits*') }}' }">
                                 <i class="fa-solid fa-hand-holding-dollar"></i>
                                 Deposits
                             </a>
                         </li>
-                        <!-- Menu Item Deposits -->
 
-                        <!-- Menu Item Profile -->
+                        <!-- Menu Item payments -->
                         <li>
                             <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                href="/profile" @click="selected = (selected === 'perofile' ? '':'Profile')"
-                                :class="{ 'bg-graydark dark:bg-meta-4': (selected === 'profile') && (
-                                    page === 'profile') }"
-                                :class="page === 'profile' && 'bg-graydark'">
-                                <i class="fa-solid fa-user"></i>
-                                Profile
+                                href="{{ route('payments.index') }}"
+                                @click="selected = 'payments'"                                 
+                                :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-payments' || '{{ Request::is('payments*') }}' }">
+                                <i class="fa-solid fa-money-bill-wave"></i>
+                                Payments
                             </a>
                         </li>
-                        <!-- Menu Item Profile -->
-
-                        <!-- Menu Item Settings -->
-                        <li>
-                            <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                href="/settings" @click="selected = (selected === 'Settings' ? '':'Settings')"
-                                :class="{ 'bg-graydark dark:bg-meta-4': (selected === 'Settings') && (
-                                    page === 'settings') }"
-                                :class="page === 'settings' && 'bg-graydark'">
-                                <i class="fa-solid fa-gear"></i>
-                                Settings
-                            </a>
-                        </li>
-                        <!-- Menu Item Settings -->
+                        <!-- Menu Item payemnts -->
                     </ul>
                 </div>
             </nav>

@@ -4,15 +4,15 @@
     </x-slot>
 
     <x-slot name="slot">
-        <div class="flex lg:col-start-2 text-gray-800 dark:text-gray-200 m-4 p-4">
+        <div class="flex lg:col-start-2 text-slate-800 dark:text-slate-200 m-4 p-4">
             <h2 class="text-lg font-bold">Orders Table</h2>
         </div>
         <hr>
 
         <div class="overflow-x-auto mt-4">
-            <table class="min-w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700">
+            <table class="min-w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700">
                 <thead>
-                    <tr class="bg-gray-200 dark:bg-gray-700">
+                    <tr class="bg-slate-200 dark:bg-slate-700">
                         <th class="py-2 px-4 text-left">Order ID</th>
                         <th class="py-2 px-4 text-left">Order Name</th>
                         <th class="py-2 px-4 text-left">Email</th>
@@ -27,7 +27,7 @@
                 </thead>
                 <tbody>
                     @foreach ($orders as $order)
-                        <tr class="border-t border-gray-300 dark:border-gray-700">
+                        <tr class="border-t border-slate-300 dark:border-slate-700">
                             <td class="py-2 px-4">{{ $order['node']['id'] }}</td>
                             <td class="py-2 px-4">{{ $order['node']['name'] }}</td>
                             <td class="py-2 px-4">{{ $order['node']['email'] }}</td>
@@ -47,7 +47,7 @@
                             <td class="py-2 px-4">
                                 <!-- Payment Status Dropdown and Button -->
                                 <div x-data="{ paymentStatus: '', orderId: '{{ $order['node']['id'] }}', message: '' }">
-                                    <select x-model="paymentStatus" class="border-gray-300 dark:border-gray-600 rounded-md shadow-sm">
+                                    <select x-model="paymentStatus" class="border-slate-300 dark:border-slate-600 rounded-md shadow-sm">
                                         <option value="">Select Status</option>
                                         <option value="pending">Pending</option>
                                         <option value="authorized">Authorized</option>

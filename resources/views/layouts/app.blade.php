@@ -41,7 +41,7 @@
         <main>
           <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
             @isset($header)
-                <div class="font-semibold text-xl leading-tight mx-auto py-6 px-4 sm:px-6 lg:px-8 text-gray-800 dark:text-gray-200 bg-slate-100 dark:bg-slate-800  shadow">
+                <div class="font-semibold text-xl leading-tight mx-auto py-6 px-4 sm:px-6 lg:px-8 text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800  shadow">
                     {{ $header }}
                 </div>
             @endisset
