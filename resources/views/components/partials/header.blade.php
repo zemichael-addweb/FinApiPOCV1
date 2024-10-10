@@ -134,8 +134,8 @@
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <x-dropdown-link class="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base" 
-                                        :href="route('logout')" 
+                                    <x-dropdown-link class="flex items-center gap-3.5 px-6 py-4 text-sm font-medium duration-300 ease-in-out hover:text-primary lg:text-base"
+                                        :href="route('logout')"
                                         onclick="event.preventDefault();
                                         this.closest('form').submit();" >
                                         <i class="fa-solid fa-right-from-bracket"></i>
@@ -150,7 +150,7 @@
                 <!-- User Area -->
             @else
                 @if (Route::has('login'))
-                    <div class="-mx-3 ms-4 flex flex-1 gap-4">
+                    <div class="-mx-3 ms-4 flex flex-1 gap-4 text-nowrap">
                         <nav class="-mx-3 flex flex-1 justify-start m-3 align-middle">
                             <a href="{{ route('payments.create') }}"
                                 class="rounded-md px-3 py-2 text-black  ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
@@ -158,24 +158,10 @@
                             </a>
                         </nav>
                         <nav class="-mx-3 ms-4 flex flex-1 gap-4 justify-end m-3 border rounded-md border-slate-600 text-nowrap">
-                            @auth
-                                {{-- <a href="{{ url('/payments.create') }}"
-                                    class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
-                                    Dashboard
-                                </a> --}}
-                            @else
-                                <a href="{{ route('login') }}"
-                                    class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
-                                    Log in
-                                </a>
-
-                                {{-- @if (Route::has('register'))
-                                    <a href="{{ route('register') }}"
-                                        class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
-                                        Register Business
-                                    </a>
-                                @endif --}}
-                            @endauth
+                            <a href="{{ route('login') }}"
+                                class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
+                                Log in
+                            </a>
                         </nav>
                     </div>
                 @endif

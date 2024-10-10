@@ -17,7 +17,7 @@ class OrderController extends Controller
         $shopifyOrders = ShopifyApiServices::getShopifyOrders();
         return view('order.order-index', ['orders' => $shopifyOrders]);
     }
-    
+
     public function create()
     {
         return 'create';
@@ -64,5 +64,15 @@ class OrderController extends Controller
     {
         $confirmationNumber = $request->confirmation_number;
         return ShopifyApiServices::getShopifyOrderByConfirmationNumber($confirmationNumber);
+    }
+
+    public function updateShopifyPaymentStatus(Request $request)
+    {
+        return ShopifyApiServices::updateShopifyPaymentStatus($request);
+    }
+
+    public function markShopifyOrderAsPaid(Request $request)
+    {
+        return ShopifyApiServices::markShopifyOrderAsPaid($request);
     }
 }
