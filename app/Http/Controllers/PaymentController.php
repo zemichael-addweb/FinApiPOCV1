@@ -92,10 +92,10 @@ class PaymentController extends Controller
         }
 
         if ($accessToken) {
-            $email = $request->input('email');
-            $password = $request->input('password');
-
             $user = auth()->user();
+
+            $email = $request->input('email') ?? ($user ? $user->email : 'email@localhost.de');
+            $password = $request->input('password') ?? 'hellopassword';
 
             $finApiUser = $user ? FinapiUser::where('user_id', $user->id)->first() : FinapiUser::where('email', $email)->first();
 
@@ -108,6 +108,7 @@ class PaymentController extends Controller
                         // 'phone' => '+49 99 999999-999',
                         'isAutoUpdateEnabled' => true
                     ]);
+
                     // {"id":"lOCOne5IisOKWzUN","password":"hellopassword","email":"email@localhost.de","phone":"+49 99 999999-999","isAutoUpdateEnabled":true}
 
                     if($fetchedFinApiUser){
@@ -115,13 +116,13 @@ class PaymentController extends Controller
                             'user_id' => $user ? $user->id : null,
                             'username' => $fetchedFinApiUser->id,
                             'password' => $fetchedFinApiUser->password,
-                            'email' => $fetchedFinApiUser->email,
+                            'email' => $email,
                         ]);
 
                         $finApiUser->save();
                     }
                 } catch (Exception $e) {
-                    return response()->json(['error' => $e->getMessage()], $e->getCode());
+                    return response()->json(['error' => $e->getMessage()], 500);
                 }
             }
 
