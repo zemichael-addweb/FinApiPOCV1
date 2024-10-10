@@ -88,7 +88,7 @@ class PaymentController extends Controller
         try {
             $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
         } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], $e->getCode());
+            return response()->json(['error' => $e->getMessage()], 500);
         }
 
         if ($accessToken) {
@@ -130,7 +130,7 @@ class PaymentController extends Controller
                 try{
                     $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
                 } catch (Exception $e) {
-                    return response()->json(['error' => $e->getMessage()], $e->getCode());
+                    return response()->json(['error' => $e->getMessage()], 500);
                 }
                 // {"access_token":"k3mvEvxNC4...","token_type":"bearer","refresh_token":"9Ld_45TcIO...","expires_in":3599,"scope":"all"}
 
@@ -167,7 +167,7 @@ class PaymentController extends Controller
                         $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
                         // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
                     } catch (Exception $e) {
-                        return response()->json(['error' => $e->getMessage()], $e->getCode());
+                        return response()->json(['error' => $e->getMessage()], 500);
                     }
 
                     if($finApiStandalonePaymentForm) {

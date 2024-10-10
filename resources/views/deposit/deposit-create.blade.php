@@ -22,9 +22,9 @@
 
             <!-- Button and Payment Info -->
             <div class="mt-4">
-                <button 
-                    @click="redirectToPayment" 
-                    :disabled="loading || (!amount || !currency || amount == '' || currency == '')" 
+                <button
+                    @click="redirectToPayment"
+                    :disabled="loading || (!amount || !currency || amount == '' || currency == '')"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                     x-text="!amount || !currency || amount == '' || currency == '' ? 'Please Fill All Fields' : 'Proceed to Payment'">
                 </button>

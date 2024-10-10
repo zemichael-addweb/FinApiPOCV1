@@ -173,8 +173,8 @@
                         })
                         .then(response => response.json())
                         .then(data => {
-                            if (data.id) {
-                                this.orderData = data;
+                            if (data.success && data.data && data.data.id) {
+                                this.orderData = data.data;
                                 this.orderFetched = true;
                             } else {
                                 this.errorMessage = 'Order not found.';
