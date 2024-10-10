@@ -63,13 +63,18 @@ class VerifyFinApiPayment extends Command
                         $formId = $this->argument('form_id');
                         $formDetails = FinAPIService::getFromDetails($accessToken, $formId);
 
+                        $updatedPayments = [];
+
+                        if (!isset($formDetails->payload->paymentId)) {
+                            $this->error('No Payment Found. Please make sure you pay using this url : ' . $formDetails->url);
+                            return;
+                        }
+
                         if (isset($formDetails->payload->paymentId)) {
                             $paymentId = $formDetails->payload->paymentId;
 
                             // API Call 2: Get payment details using the payment ID from the form response
                             $paymentDetails = FinAPIService::getPaymentDetails($accessToken, $paymentId);
-
-                            $updatedPayments = [];
 
                             if (isset($paymentDetails->payments)) {
                                 foreach ($paymentDetails->payments as $payment) {
@@ -89,6 +94,8 @@ class VerifyFinApiPayment extends Command
                                             'type' => 'ORDER', // schema does not match
                                             'status' => $payment->status
                                         ]);
+
+                                        $savedPayment->save();
                                     }
                                     $updatedPayments[] = $savedPayment;
                                 }

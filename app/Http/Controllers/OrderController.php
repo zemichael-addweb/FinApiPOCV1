@@ -14,8 +14,12 @@ class OrderController extends Controller
     // resource controller
     public function index()
     {
-        $shopifyOrders = ShopifyApiServices::getShopifyOrders();
-        return view('order.order-index', ['orders' => $shopifyOrders]);
+        $shopifyOrders = ShopifyApiServices::getShopifyOrders()->getData();
+
+        if(!$shopifyOrders->success || empty($shopifyOrders->data)) {
+            return view('order.order-index', ['orders' => []]);
+        }
+        return view('order.order-index', ['orders' => $shopifyOrders->data]);
     }
 
     public function create()
@@ -74,5 +78,10 @@ class OrderController extends Controller
     public function markShopifyOrderAsPaid(Request $request)
     {
         return ShopifyApiServices::markShopifyOrderAsPaid($request);
+    }
+
+    public function refundOrder(Request $request)
+    {
+        return ShopifyApiServices::refundOrder($request);
     }
 }

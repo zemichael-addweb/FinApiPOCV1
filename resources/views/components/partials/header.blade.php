@@ -150,14 +150,13 @@
                 <!-- User Area -->
             @else
                 @if (Route::has('login'))
-                    <div class="-mx-3 ms-4 flex flex-1 gap-4 text-nowrap">
-                        <nav class="-mx-3 flex flex-1 justify-start m-3 align-middle">
+                    <div class="mx-4 ms-4 flex flex-1 gap-4 text-nowrap">
+                        <nav class="-mx-3 ms-4 flex flex-1 gap-4 justify-end m-3 border rounded-md border-slate-600 text-nowrap">
                             <a href="{{ route('payments.create') }}"
                                 class="rounded-md px-3 py-2 text-black  ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
                                 Make Payment
                             </a>
-                        </nav>
-                        <nav class="-mx-3 ms-4 flex flex-1 gap-4 justify-end m-3 border rounded-md border-slate-600 text-nowrap">
+                            <hr class="h-full w-[1px] bg-slate-500">
                             <a href="{{ route('login') }}"
                                 class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
                                 Log in
