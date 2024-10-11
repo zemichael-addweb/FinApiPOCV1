@@ -38,7 +38,7 @@ class FinAPIAccessToken extends Model
         return "{$accessToken->token_type} {$accessToken->access_token}";
     }
 
-    public static function getAccessToken() {
+    public static function getAccessToken($type) {
         $accessToken = self::orderBy('created_at', 'desc')->first();
 
         if(!$accessToken || $accessToken->isExpired()) {

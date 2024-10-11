@@ -59,6 +59,7 @@ Route::prefix('shopify')
     Route::prefix('payment')
         // ->middleware(VerifyShopifyRequest::class)
         ->group(function () {
+            Route::post('make-direct-debit', [PaymentController::class, 'makeDirectDebit'])->name('shopify.payment.make-direct-debit');
             Route::post('redirect-to-payment-form', [PaymentController::class, 'redirectToFinAPIPaymentForm'])->name('shopify.payment.redirect-to-fin');
             Route::post('form-callback', [PaymentController::class, 'fromCallback'])->name('shopify.payment.form.callback');
     });
