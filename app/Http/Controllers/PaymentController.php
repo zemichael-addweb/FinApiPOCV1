@@ -50,6 +50,11 @@ class PaymentController extends Controller
         $pageTitle = 'create-payment';
         return view('payment.payment-create',  ['pageTitle'=>$pageTitle]);
     }
+    public function createDirectDebit()
+    {
+        $pageTitle = 'create-direct-debit-payment';
+        return view('payment.payment-create-direct-debit',  ['pageTitle'=>$pageTitle]);
+    }
 
     public function store(Request $request)
     {
@@ -58,6 +63,10 @@ class PaymentController extends Controller
 
     public function show($id)
     {
+        if($id=="create-direct-debit"){
+            return $this->createDirectDebit();
+        }
+
         return '404 Not Found';
     }
 
@@ -76,7 +85,7 @@ class PaymentController extends Controller
         return '404 Not Found';
     }
 
-    public function makeDirectDebit(Request $request)
+    public function makeDirectDebitWithApi(Request $request)
     {
         try{
             $finApiUserAccessToken = FinAPIService::getAccessToken('user');
@@ -85,8 +94,25 @@ class PaymentController extends Controller
                 return $finApiUserAccessToken;
             }
 
-            $finApiDirectDebit = FinAPIService::createDirectDebit($finApiUserAccessToken->access_token, $request);
-            // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
+            $finApiDirectDebit = FinAPIService::createDirectDebitWithAPi($finApiUserAccessToken->access_token, $request);
+
+            return response()->json($finApiDirectDebit);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function makeDirectDebitWithWebform(Request $request)
+    {
+        try{
+            $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+
+            if($finApiUserAccessToken instanceof JsonResponse){
+                return $finApiUserAccessToken;
+            }
+
+            $finApiDirectDebit = FinAPIService::createDirectDebitWithWebform($finApiUserAccessToken->access_token, $request);
+
             return response()->json($finApiDirectDebit);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

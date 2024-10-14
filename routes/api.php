@@ -31,6 +31,8 @@ Route::group(['prefix' => 'v1'], function () {
         Route::prefix('payment')->group(function () {
             Route::post('make-direct-debit', [PaymentController::class, 'makeDirectDebit'])
                 ->name('api.shopify.payment.makeDirectDebit');
+
+            Route::post('make-direct-debit-with-webform', [PaymentController::class, 'makeDirectDebitWithWebform'])->name('api.shopify.payment.make-direct-debit-with-webform');
         });
     });
 });

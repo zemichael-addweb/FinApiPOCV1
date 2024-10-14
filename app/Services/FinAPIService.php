@@ -14,6 +14,7 @@ use App\Models\FinapiUser;
 use App\Models\Payment;
 use App\Services\FinApiLoggerService;
 use App\Services\OpenApiEnumModelService;
+use Carbon\Carbon;
 use FinAPI\Client\Api\PaymentsApi;
 use FinAPI\Client\Configuration;
 use FinAPI\Client\Model\CreateMoneyTransferParams;
@@ -23,6 +24,7 @@ use FinAPI\Client\Model\MoneyTransferOrderParams;
 use FinAPI\Client\Model\MoneyTransferOrderParamsCounterpartAddress;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class FinAPIService {
@@ -260,19 +262,19 @@ class FinAPIService {
         return null;
     }
 
-    public static function createDirectDebit($userAccessToken, $request)
+    public static function createDirectDebitWithApi($userAccessToken, $request)
     {
         $url = 'https://sandbox.finapi.io/api/v2/payments/directDebits';
         $requestId = self::createUUID();
 
-        $body = self::buildDirectDepositDetails($request);
+        $body = self::buildDirectDepositWithApiDetails($request);
 
         if (!$body) {
             return response()->json('Error building direct deposit details', 500);
         }
 
-        if (isset($body->success) && $body->success == false) {
-            return response()->json($body->message, 400);
+        if($body instanceof JsonResponse){
+            return $body;
         }
 
         $client = new Client();
@@ -299,44 +301,132 @@ class FinAPIService {
         return null;
     }
 
-    private static function buildDirectDepositDetails(Request $request)
+    public static function createDirectDebitWithWebform($userAccessToken, $request)
     {
-        // Required fields validation
-        $requiredFields = [
-            'accountId', 'directDebitType', 'sequenceType', 'directDebits', 'executionDate'
+        // https://docs.finapi.io/#post-/api/webForms/directDebitWithAccountId
+
+        $url = "https://webform-sandbox.finapi.io/api/webForms/directDebitWithAccountId";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $body = self::buildDirectDebitWithWebformDetails($request);
+
+        if (!$body) {
+            return response()->json('Error building direct deposit details', 500);
+        }
+
+        if($body instanceof JsonResponse){
+            return $body;
+        }
+
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+                'Content-Type' => 'application/json',
+            ],
+            'json' => $body
+        ]);
+
+        $data = json_decode($response->getBody()->getContents(), true);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $data], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 201) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Form!');
+        return null;
+    }
+
+    private static function buildDirectDebitWithWebformDetails(Request $request)
+    {
+        $rules = [
+            'payer_name' => 'required',
+            'iban' => 'required',
+            'amount' => 'required|numeric',
+            'purpose' => 'required',
+            'execution_date' => 'required|date|after_or_equal:today',
         ];
 
-        foreach ($requiredFields as $field) {
-            if (!$request->has($field)) {
-                $error = new stdClass();
-                $error->success = false;
-                $error->message = "Missing required field: {$field}";
-                return $error;
-            }
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()->all()], 400);
         }
 
-        // Direct Debit fields validation
-        $directDebitFields = ['counterpartName', 'counterpartIban', 'amount', 'mandateId', 'mandateDate', 'creditorId'];
-        $directDebit = $request->input('directDebits')[0];
+        $body = [
+            "orders" => [
+                [
+                    "payer" => [
+                        "name" => $request->payer_name,
+                        "iban" => $request->iban,
+                        // "bic" => $request->input('bic', null),
+                        // "address" => $request->input('payer_address', '221b Baker St, London NW1 6XE'),
+                        // "country" => $request->input('payer_country', 'DE'),
+                    ],
+                    "amount" => [
+                        "value" => $request->amount,
+                        "currency" => $request->input('currency', 'EUR')
+                    ],
+                    "purpose" => $request->purpose,
+                    // "sepaPurposeCode" => $request->input('sepa_purpose_code', 'SALA'),
+                    // "endToEndId" => $request->input('end_to_end_id', 'endToEndId')
+                    "mandateId" => 1, // Mandate ID that this direct debit order is based on.
+                    "mandateDate" => "2024-01-01", // Date of the mandate that this direct debit order is based on, in the format YYYY-MM-DD
+                    // ! https://documentation.finapi.io/access/finapi-test-bank-for-redirect-approach
+                    "creditorId" => $request->input('creditor_id', 'DE85533700080333333300') //Creditor ID of the source account's holder
+                ]
+            ],
+            "executionDate" => $request->input('execution_date', Carbon::now()->addDays(1)->format('Y-m-d')),
+            // "batchBookingPreferred" => $request->input('batch_booking_preferred', true),
+            // "batchBookingId" => $request->input('batch_booking_id', 'batch-payment-' . date('Y-m-d')),
+            // "profileId" => $request->input('profile_id', null),
+            // "redirectUrl" => $request->input('redirect_url', 'https://finapi.io/callback'),
+            // "callbacks" => [
+            //     "finalised" => $request->input('finalised_callback', 'https://yourdomain.com/callback?state=42')
+            // ],
+            "receiver" => [
+                // ! https://documentation.finapi.io/access/finapi-test-bank-for-redirect-approach
+                "accountId" => $request->input('account_id', 280002)
+            ],
+            "directDebitType" => $request->input('direct_debit_type', 'B2B'),
+            "sequenceType" => $request->input('sequence_type', 'OOFF')
+        ];
 
-        foreach ($directDebitFields as $field) {
-            if (empty($directDebit[$field])) {
-                $error = new stdClass();
-                $error->success = false;
-                $error->message = "Missing required field in directDebits: {$field}";
-                return $error;
-            }
+        return $body;
+    }
+
+    private static function buildDirectDepositWithApiDetails(Request $request)
+    {
+        $rules = [
+            'accountId' => 'required',
+            'directDebitType' => 'required',
+            'sequenceType' => 'required',
+            'directDebits' => 'required|array|min:1',
+            'directDebits.*.counterpartName' => 'required',
+            'directDebits.*.counterpartIban' => 'required',
+            'directDebits.*.amount' => 'required|numeric',
+            'directDebits.*.mandateId' => 'required',
+            'directDebits.*.mandateDate' => 'required|date',
+            'directDebits.*.creditorId' => 'required',
+            'executionDate' => 'required|date|after_or_equal:today'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()->all()], 400);
         }
 
-        $body = new stdClass();
-        $body->singleBooking = $request->input('singleBooking', false);
-        $body->msgId = $request->input('msgId');
-        $body->accountId = $request->input('accountId');
-        $body->directDebitType = $request->input('directDebitType');
-        $body->sequenceType = $request->input('sequenceType');
-        $body->executionDate = $request->input('executionDate');
-        $body->directDebits = [
-            [
+        $directDebits = $request->input('directDebits');
+
+        $directDebits = array_map(function($directDebit) {
+            return [
                 'counterpartName' => $directDebit['counterpartName'],
                 'counterpartIban' => $directDebit['counterpartIban'],
                 'counterpartBic' => $directDebit['counterpartBic'] ?? null,
@@ -346,9 +436,18 @@ class FinAPIService {
                 'endToEndId' => $directDebit['endToEndId'] ?? null,
                 'mandateId' => $directDebit['mandateId'],
                 'mandateDate' => $directDebit['mandateDate'],
-                'creditorId' => $directDebit['creditorId'],
-            ]
-        ];
+                'creditorId' => $directDebit['creditorId']
+            ];
+        }, $directDebits);
+
+        $body = new stdClass();
+        $body->singleBooking = $request->input('singleBooking', false);
+        $body->msgId = $request->input('msgId');
+        $body->accountId = $request->input('accountId');
+        $body->directDebitType = $request->input('directDebitType');
+        $body->sequenceType = $request->input('sequenceType');
+        $body->executionDate = $request->input('executionDate');
+        $body->directDebits = $directDebits;
 
         return $body;
     }

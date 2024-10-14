@@ -101,7 +101,6 @@
             </div>
         </div>
 
-        <!-- Alpine.js Script -->
         <script>
             function paymentForm() {
                 return {

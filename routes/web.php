@@ -24,6 +24,11 @@ Route::get('/', function () {
 })->name('home');
 
 Route::resource( '/payments', PaymentController::class);
+
+// Route::prefix('payments')->group(function () {
+//         Route::get( '/create-direct-debit', [PaymentController::class, 'createDirectDebit'])->name('payment.create-direct-debit');
+// });
+
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::group(['middleware'=>['auth', 'verified']], function () {
@@ -59,7 +64,9 @@ Route::prefix('shopify')
     Route::prefix('payment')
         // ->middleware(VerifyShopifyRequest::class)
         ->group(function () {
-            Route::post('make-direct-debit', [PaymentController::class, 'makeDirectDebit'])->name('shopify.payment.make-direct-debit');
+            Route::post('make-direct-debit-with-api', [PaymentController::class, 'makeDirectDebitWithApi'])->name('shopify.payment.make-direct-debit-with-api');
+            Route::post('make-direct-debit-with-webform', [PaymentController::class, 'makeDirectDebitWithWebform'])->name('shopify.payment.make-direct-debit-with-webform');
+            Route::post('make-direct-debit', [PaymentController::class, 'createDirectDebit'])->name('payments.directDebit');
             Route::post('redirect-to-payment-form', [PaymentController::class, 'redirectToFinAPIPaymentForm'])->name('shopify.payment.redirect-to-fin');
             Route::post('form-callback', [PaymentController::class, 'fromCallback'])->name('shopify.payment.form.callback');
     });
