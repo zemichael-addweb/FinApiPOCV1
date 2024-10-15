@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\BankController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepositController;
 use App\Http\Controllers\FinapiPaymentRecipientController;
@@ -41,10 +42,14 @@ Route::middleware(EnsureUserIsAdmin::class)
     ->group(function () {
         Route::resource('/settings/finapi-payment-recipient', FinapiPaymentRecipientController::class);
         Route::resource( '/orders', OrderController::class);
+        Route::resource( '/bank', BankController::class);
         Route::get( '/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
         Route::get( '/settings', [AdminController::class, 'settings'] );
+
+        Route::get( '/bank/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
+        Route::post( '/bank/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
 });
 
 Route::prefix('shopify')

@@ -32,7 +32,7 @@ class DepositController extends Controller
         // TODO get all deposits of this user and display them
         return view('deposit.deposit-index');
     }
-    
+
     public function create()
     {
         return view('deposit.deposit-create');
@@ -93,9 +93,9 @@ class DepositController extends Controller
                     'phone' => '+49 99 999999-999',
                     'isAutoUpdateEnabled' => true
                 ];
-    
+
                 $finApiUser = FinAPIService::createFinApiUser($accessToken->access_token, $userDetails);
-    
+
                 // {"id":"lOCOne5IisOKWzUN","password":"hellopassword","email":"email@localhost.de","phone":"+49 99 999999-999","isAutoUpdateEnabled":true}
 
                 $finApiUserDetails = new FinapiUser([
@@ -123,7 +123,7 @@ class DepositController extends Controller
                         'finapi_user_id' => $finApiUserDetails->id,
                         'order_ref_number' => '123456', // TODO get this from shopify
                         'amount' => $amount,
-                        'currency' => $currency, 
+                        'currency' => $currency,
                         'type' => 'ORDER', // TODO and this
                         'status' => 'PENDING',
                     ]);
@@ -139,7 +139,7 @@ class DepositController extends Controller
 
                     // dump($finApiStandalonePaymentForm);
                     // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
-                    
+
                     if($finApiStandalonePaymentForm) {
                         $formData = [
                             'form_id' => $finApiStandalonePaymentForm->id,
@@ -147,7 +147,7 @@ class DepositController extends Controller
                             'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                             'type' => $finApiStandalonePaymentForm->type,
                         ];
-                        FinApiLoggerService::logPaymentForm($payment->id, $formData);
+                        FinApiLoggerService::logFinapiForm($formData, $payment->id);
 
                         return response()->json($finApiStandalonePaymentForm);
                     }
