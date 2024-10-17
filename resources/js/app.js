@@ -9,6 +9,11 @@ import Alpine from 'alpinejs';
 import persist from '@alpinejs/persist';
 Alpine.plugin(persist);
 window.Alpine = Alpine;
+
+Alpine.store('loading', {
+    loadingData: false,
+});
+
 Alpine.start();
 
 import flatpickr from "flatpickr";
@@ -46,4 +51,3 @@ flatpickr(".form-datepicker", {
   nextArrow:
     '<svg class="fill-current" width="7" height="11" viewBox="0 0 7 11"><path d="M1.4 10.8L0 9.4l4-4-4-4L1.4 0l5.4 5.4z" /></svg>',
 });
-

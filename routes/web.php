@@ -47,9 +47,12 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
         Route::get( '/settings', [AdminController::class, 'settings'] );
-
-        Route::get( '/bank/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
-        Route::post( '/bank/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
+        Route::prefix('bank')->group(function () {
+            Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');
+            Route::get( '/get-transactions', [BankController::class, 'getTransactions'] )->name('admin.bank.get-transactions');
+            Route::get( '/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
+            Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
+        });
 });
 
 Route::prefix('shopify')

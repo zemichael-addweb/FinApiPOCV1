@@ -8,6 +8,7 @@ use App\Services\FinAPIService;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class BankController extends Controller
 {
@@ -16,12 +17,19 @@ class BankController extends Controller
         return view('bank.bank-index');
     }
 
-    public function show($id)
+    public function show(Request $request, $id)
     {
-        if($id == 'import-bank-connection'){
-            return $this->importBankConnection();
+        switch($id){
+            case 'import-bank-connection':
+                return $this->importBankConnection();
+            case 'transactions':
+                return $this->transactions($request);
+            case 'get-transactions':
+                return $this->getTransactions($request);
+            default :
+                return '404, Not found';
         }
-        return '404, Not found';
+
     }
 
     public function create()
@@ -49,15 +57,8 @@ class BankController extends Controller
         return view('bank.import-bank-connection');
     }
 
-    public function redirectToImportBankConnectionForm(Request $request){
-        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
-
-        if($finApiUserAccessToken instanceof JsonResponse){
-            return $finApiUserAccessToken;
-        }
-
-        $finApiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
-
+    public function redirectToImportBankConnectionForm(Request $request)
+    {
         $bankConnectionDetails = FinAPIService::buildBankConnectionDetails($request);
 
         if (!$bankConnectionDetails) {
@@ -67,6 +68,14 @@ class BankController extends Controller
         if($bankConnectionDetails instanceof JsonResponse){
             return $bankConnectionDetails;
         }
+
+        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+
+        if($finApiUserAccessToken instanceof JsonResponse){
+            return $finApiUserAccessToken;
+        }
+
+        $finApiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
 
         try{
             $finApiStandalonePaymentForm = FinAPIService::getImportBankConnectionform($finApiUserAccessToken->access_token, $bankConnectionDetails);
@@ -87,5 +96,65 @@ class BankController extends Controller
 
             return response()->json($finApiStandalonePaymentForm);
         }
+    }
+
+    public function transactions(Request $request)
+    {
+        $transactions = json_decode($this->getTransactions($request)->getContent());
+        $bankConnections = json_decode($this->getBankConnections($request)->getContent());
+
+        return view('bank.transactions-index', ['transactions' => $transactions, 'bankConnections' => $bankConnections]);
+    }
+
+    public function getTransactions(Request $request)
+    {
+        $filters = FinAPIService::buildTransactionFilters($request);
+
+        if (!$filters) {
+            return response()->json(['error' => 'Failed to build transaction filters. Plese contact system admin.'], 500);
+        }
+
+        if($filters instanceof JsonResponse){
+            return $filters;
+        }
+
+        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+
+        if($finApiUserAccessToken instanceof JsonResponse){
+            return $finApiUserAccessToken;
+        }
+
+        try {
+            $transactions = FinAPIService::fetchTransactions($finApiUserAccessToken->access_token, $filters);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        if ($transactions) {
+            return response()->json($transactions);
+        }
+
+        return response()->json(['message' => 'No transactions found'], 404);
+    }
+
+    public function getBankConnections(Request $request)
+    {
+        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+
+        if($finApiUserAccessToken instanceof JsonResponse){
+            return $finApiUserAccessToken;
+        }
+
+        try {
+            $bankConnections = FinAPIService::fetchBankConnections($finApiUserAccessToken->access_token);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        if ($bankConnections) {
+            return response()->json($bankConnections);
+        }
+
+        return response()->json(['message' => 'No Bank Connections found. Please add one.'], 404);
     }
 }

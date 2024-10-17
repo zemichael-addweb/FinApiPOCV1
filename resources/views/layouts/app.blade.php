@@ -15,10 +15,10 @@
   </head>
 
   <body
-    x-data="{ page: 'ecommerce', 'loaded': true, 'darkMode': true, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-data="{page: 'ecommerce', 'loaded': true, 'darkMode': true, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
     x-init="
          darkMode = JSON.parse(localStorage.getItem('darkMode'));
-         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+         $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)));"
     :class="{'dark text-bodydark bg-boxdark-2': darkMode === true}"
   >
     <!-- ===== Preloader Start ===== -->
@@ -36,7 +36,7 @@
         <!-- ===== Header Start ===== -->
         <x-partials.header />
         <!-- ===== Header End ===== -->
-        
+
         <!-- ===== Main Content Start ===== -->
         <main>
           <div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
@@ -45,6 +45,8 @@
                     {{ $header }}
                 </div>
             @endisset
+            <x-data-loading />
+
             {{ $slot }}
           </div>
         </main>
@@ -58,4 +60,3 @@
     <script src="{{ asset('vendor/fontawesome-free-6.5.2-web/js/all.min.js') }}"></script>
   </body>
 </html>
-
