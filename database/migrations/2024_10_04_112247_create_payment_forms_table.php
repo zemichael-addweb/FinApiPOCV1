@@ -21,7 +21,6 @@ return new class extends Migration
             $table->string('type', 128)->nullable();
             $table->string('status', 128)->nullable();
             $table->string('bank_connection_id', 128)->nullable();
-            // $table->string('payment_id', 128)->nullable();
             $table->string('standing_order_id', 128)->nullable();
             $table->string('error_code', 128)->nullable();
             $table->string('error_message', 128)->nullable();

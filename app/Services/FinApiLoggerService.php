@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\FinapiForm;
 use App\Models\UserAmountLog;
 use App\Models\PaymentForm;
 use App\Models\FinapiRequest;
@@ -20,9 +21,9 @@ class FinApiLoggerService
         ]);
     }
 
-    public static function logPaymentForm($paymentId, $formData)
+    public static function logFinapiForm($formData, $paymentId = null)
     {
-        return PaymentForm::create([
+        return FinapiForm::create([
             'payment_id' => $paymentId,
             'finapi_user_id' => $formData['finapi_user_id'] ?? null,
             'form_id' => $formData['form_id'] ?? null,
@@ -31,7 +32,6 @@ class FinApiLoggerService
             'type' => $formData['type'] ?? null,
             'status' => $formData['status'] ?? null,
             'bank_connection_id' => $formData['bank_connection_id'] ?? null,
-            // 'payment_id' => $formData['payment_id'] ?? null,
             'standing_order_id' => $formData['standing_order_id'] ?? null,
             'error_code' => $formData['error_code'] ?? null,
             'error_message' => $formData['error_message'] ?? null,

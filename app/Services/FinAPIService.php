@@ -48,7 +48,7 @@ class FinAPIService {
     public static function getClientId(){return config('finApi.default.clientId');}
     public static function getClientSecret(){return  config('finApi.default.clientSecret');}
 
-    public static function getOAuthToken($grantType, $username = null, $password = null)
+    public static function getOAuthToken($grantType, $username = null, $password = null, $refreshToken = null)
     {
         $baseUrl = self::getBaseUrl();
         $url = "$baseUrl/api/v2/oauth/token";
@@ -65,6 +65,10 @@ class FinAPIService {
         if ($grantType === 'password') {
             $formParams['username'] = $username;
             $formParams['password'] = $password;
+        }
+
+        if ($grantType === 'refresh_token') {
+            $formParams['refresh_token'] = $refreshToken;
         }
 
         $response = $client->post($url, [
@@ -158,19 +162,35 @@ class FinAPIService {
                         }
                     }
 
-                    // Once we have a valid FinAPI user, get their OAuth token
                     if ($finApiUser) {
-                        $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                        if (isset($finApiUser->expire_at)) {
+                            $now = Carbon::now();
+                            $expiresAt = Carbon::parse($finApiUser->expire_at);
+                            $finApiUserAccessToken = null;
 
-                        if ($finApiUserAccessToken) {
-                            $finApiUser->access_token = $finApiUserAccessToken->access_token;
-                            $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
-                            $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
+                            if (!isset($finApiUser->refresh_token)) {
+                                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                            } elseif ($now->lt($expiresAt)) {
+                                return $finApiUser;
+                            }
+                            // else {
+                            //     $finApiUserAccessToken = FinAPIService::getOAuthToken('refresh_token', null, null, $finApiUser->refresh_token);
+                            // }
 
-                            $finApiUser->save();
+                            if (!isset($finApiUserAccessToken->access_token)) {
+                                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                            }
 
-                            return $finApiUserAccessToken;
+                            if ($finApiUserAccessToken && isset($finApiUserAccessToken->access_token)) {
+                                $finApiUser->access_token = $finApiUserAccessToken->access_token;
+                                $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
+                                $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
+
+                                $finApiUser->save();
+                                return $finApiUserAccessToken;
+                            }
                         }
+                        return $finApiUser;
                     }
                 }
 
@@ -180,6 +200,33 @@ class FinAPIService {
             }
 
             return null;
+    }
+
+    public static function getBankConnectionForm($userAccessToken, $paymentDetails)
+    {
+        $url = 'https://webform-sandbox.finapi.io//api/webForms/bankConnectionImport';
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->post($url, [
+            'headers' => [
+                'X-Request-Id' => $requestId,
+                'Authorization' => 'Bearer ' . $userAccessToken,
+            ],
+            'json' => $paymentDetails,
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 201) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Form!');
+        return null;
     }
 
     public static function getStandalonePaymentForm($userAccessToken, $paymentDetails)
@@ -262,6 +309,59 @@ class FinAPIService {
         return null;
     }
 
+    public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null)
+    {
+        $finApiPaymentRecipient = FinapiPaymentRecipient::first();
+
+        if (!$finApiPaymentRecipient) {
+            return null;
+        }
+
+        $order = [
+            "recipient" => [
+                "name" => $finApiPaymentRecipient->name,
+                "iban" => $finApiPaymentRecipient->iban,
+                // "bic" => $finApiPaymentRecipient->bic,
+                // "bankName" => $finApiPaymentRecipient->bankName,
+                // "address" => [
+                //     "street" => $finApiPaymentRecipient->street,
+                //     "houseNumber" => $finApiPaymentRecipient->houseNumber,
+                //     "postCode" => $finApiPaymentRecipient->postCode,
+                //     "city" => $finApiPaymentRecipient->city,
+                //     "country" => $finApiPaymentRecipient->country,
+                // ],
+                // "structuredRemittanceInformation" => [
+                //     "VS:12345",
+                //     "KS:12345",
+                //     "SS:12345"
+                // ],
+            ],
+            "amount" => [
+                "value" => $amount,
+                "currency" => $currencyCode,
+            ],
+            "purpose" => $finapiUserId ? "Payment for FinAPI User: $finapiUserId" : "Payment for FinAPI User",
+            // "sepaPurposeCode" => "SALA",
+            // "endToEndId" => "endToEndId"
+        ];
+
+        return [
+            "orders" => [
+                $order
+            ],
+            // "profileId" => "a2c9fc3b-1777-403c-8b2f-1ce4d90157a2",
+            // "redirectUrl" => "https://terd/callback",
+            // "callbacks" => [
+            //     "finalised" => "https://terd/callback?state=42"
+            // ],
+            // "sender" => [
+            //     "iban" => "DE77533700080111111100"
+            // ],
+            "instantPayment" => false,
+            "allowTestBank" => true
+        ];
+    }
+
     public static function createDirectDebitWithApi($userAccessToken, $request)
     {
         $url = 'https://sandbox.finapi.io/api/v2/payments/directDebits';
@@ -299,6 +399,57 @@ class FinAPIService {
 
         dump('No or invalid payment!');
         return null;
+    }
+
+    private static function buildDirectDepositWithApiDetails(Request $request)
+    {
+        $rules = [
+            'accountId' => 'required',
+            'directDebitType' => 'required',
+            'sequenceType' => 'required',
+            'directDebits' => 'required|array|min:1',
+            'directDebits.*.counterpartName' => 'required',
+            'directDebits.*.counterpartIban' => 'required',
+            'directDebits.*.amount' => 'required|numeric',
+            'directDebits.*.mandateId' => 'required',
+            'directDebits.*.mandateDate' => 'required|date',
+            'directDebits.*.creditorId' => 'required',
+            'executionDate' => 'required|date|after_or_equal:today'
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()->all()], 400);
+        }
+
+        $directDebits = $request->input('directDebits');
+
+        $directDebits = array_map(function($directDebit) {
+            return [
+                'counterpartName' => $directDebit['counterpartName'],
+                'counterpartIban' => $directDebit['counterpartIban'],
+                'counterpartBic' => $directDebit['counterpartBic'] ?? null,
+                'amount' => $directDebit['amount'],
+                'purpose' => $directDebit['purpose'] ?? null,
+                'sepaPurposeCode' => $directDebit['sepaPurposeCode'] ?? null,
+                'endToEndId' => $directDebit['endToEndId'] ?? null,
+                'mandateId' => $directDebit['mandateId'],
+                'mandateDate' => $directDebit['mandateDate'],
+                'creditorId' => $directDebit['creditorId']
+            ];
+        }, $directDebits);
+
+        $body = new stdClass();
+        $body->singleBooking = $request->input('singleBooking', false);
+        $body->msgId = $request->input('msgId');
+        $body->accountId = $request->input('accountId');
+        $body->directDebitType = $request->input('directDebitType');
+        $body->sequenceType = $request->input('sequenceType');
+        $body->executionDate = $request->input('executionDate');
+        $body->directDebits = $directDebits;
+
+        return $body;
     }
 
     public static function createDirectDebitWithWebform($userAccessToken, $request)
@@ -401,20 +552,55 @@ class FinAPIService {
         return $body;
     }
 
-    private static function buildDirectDepositWithApiDetails(Request $request)
+    public static function getImportBankConnectionform($userAccessToken, $bankConnectionDetails)
     {
+        // https://docs.finapi.io/#post-/api/webForms/createBankConnection
+
+        $url = "https://webform-sandbox.finapi.io/api/webForms/bankConnectionImport";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->post($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+            'json' => $bankConnectionDetails
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $bankConnectionDetails], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 201) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Form!');
+        return null;
+    }
+
+    public static function buildBankConnectionDetails(Request $request)
+    {
+        // ! NOTHING IS REQUIRED FOR NOW : WILL NEED TO READ MORE FOR VALIDATION CHECK
+        // CHECK REQUEST SCHEMA
+        // https://docs.finapi.io/#post-/api/webForms/bankConnectionImport
+
         $rules = [
-            'accountId' => 'required',
-            'directDebitType' => 'required',
-            'sequenceType' => 'required',
-            'directDebits' => 'required|array|min:1',
-            'directDebits.*.counterpartName' => 'required',
-            'directDebits.*.counterpartIban' => 'required',
-            'directDebits.*.amount' => 'required|numeric',
-            'directDebits.*.mandateId' => 'required',
-            'directDebits.*.mandateDate' => 'required|date',
-            'directDebits.*.creditorId' => 'required',
-            'executionDate' => 'required|date|after_or_equal:today'
+            'bank_id' => 'nullable|integer',
+            'bank_search' => 'nullable|string',
+            'bank_connection_name' => 'nullable|string|max:64',
+            'skip_balances_download' => 'nullable|boolean',
+            'skip_positions_download' => 'nullable|boolean',
+            'load_owner_data' => 'nullable|boolean',
+            'max_days_for_download' => 'nullable|integer|max:3650',
+            'account_types' => 'nullable|array',
+            'allowed_interfaces' => 'nullable|array',
+            'callbacks_finalised' => 'nullable|url|max:2048',
+            'profile_d' => 'nullable|string|size:36',
+            'redirect_url' => 'nullable|url|max:2048',
+            'allow_test_bank' => 'nullable|boolean'
         ];
 
         $validator = Validator::make($request->all(), $rules);
@@ -423,85 +609,164 @@ class FinAPIService {
             return response()->json(['success' => false, 'errors' => $validator->errors()->all()], 400);
         }
 
-        $directDebits = $request->input('directDebits');
-
-        $directDebits = array_map(function($directDebit) {
-            return [
-                'counterpartName' => $directDebit['counterpartName'],
-                'counterpartIban' => $directDebit['counterpartIban'],
-                'counterpartBic' => $directDebit['counterpartBic'] ?? null,
-                'amount' => $directDebit['amount'],
-                'purpose' => $directDebit['purpose'] ?? null,
-                'sepaPurposeCode' => $directDebit['sepaPurposeCode'] ?? null,
-                'endToEndId' => $directDebit['endToEndId'] ?? null,
-                'mandateId' => $directDebit['mandateId'],
-                'mandateDate' => $directDebit['mandateDate'],
-                'creditorId' => $directDebit['creditorId']
-            ];
-        }, $directDebits);
-
-        $body = new stdClass();
-        $body->singleBooking = $request->input('singleBooking', false);
-        $body->msgId = $request->input('msgId');
-        $body->accountId = $request->input('accountId');
-        $body->directDebitType = $request->input('directDebitType');
-        $body->sequenceType = $request->input('sequenceType');
-        $body->executionDate = $request->input('executionDate');
-        $body->directDebits = $directDebits;
+        $body = [
+            // 'bank' => [
+            //     'id' => $request->input('bank_id', null),
+            //     'search' => $request->input('bank_search', null)
+            // ],
+            'bankConnectionName' => $request->input('bank_connection_name', 'My bank connection'),
+            // 'skipBalancesDownload' => $request->input('skip_balances_download', false),
+            // 'skipPositionsDownload' => $request->input('skip_positions_download', false),
+            // 'loadOwnerData' => $request->input('load_owner_data', false),
+            'maxDaysForDownload' => $request->input('max_days_for_download', 0),
+            // 'accountTypes' => $request->input('account_types', [
+            //     'CHECKING', 'SAVINGS', 'CREDIT_CARD', 'SECURITY', 'MEMBERSHIP', 'LOAN', 'BAUSPAREN'
+            // ]),
+            'allowedInterfaces' => $request->input('allowed_interfaces', ['XS2A', 'FINTS_SERVER', 'WEB_SCRAPER']),
+            // 'callbacks' => [
+            //     'finalised' => $request->input('callbacks.finalised', 'https://dev.finapi.io/callback?state=42')
+            // ],
+            // 'profileId' => $request->input('profileId', null),
+            // 'redirectUrl' => $request->input('redirectUrl', 'https://finapi.io/callback'),
+            'allowTestBank' => $request->input('allowTestBank', true)
+        ];
 
         return $body;
     }
 
-    public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null)
+    public static function fetchTransactions($userAccessToken, $filters)
     {
-        $finApiPaymentRecipient = FinapiPaymentRecipient::first();
+        // https://docs.finapi.io/#get-/api/v2/transactions/-id-
 
-        if (!$finApiPaymentRecipient) {
-            return null;
+        $url = "https://sandbox.finapi.io/api/v2/transactions";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+            'query' => $filters
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
         }
 
-        $order = [
-            "recipient" => [
-                "name" => $finApiPaymentRecipient->name,
-                "iban" => $finApiPaymentRecipient->iban,
-                // "bic" => $finApiPaymentRecipient->bic,
-                // "bankName" => $finApiPaymentRecipient->bankName,
-                // "address" => [
-                //     "street" => $finApiPaymentRecipient->street,
-                //     "houseNumber" => $finApiPaymentRecipient->houseNumber,
-                //     "postCode" => $finApiPaymentRecipient->postCode,
-                //     "city" => $finApiPaymentRecipient->city,
-                //     "country" => $finApiPaymentRecipient->country,
-                // ],
-                // "structuredRemittanceInformation" => [
-                //     "VS:12345",
-                //     "KS:12345",
-                //     "SS:12345"
-                // ],
-            ],
-            "amount" => [
-                "value" => $amount,
-                "currency" => $currencyCode,
-            ],
-            "purpose" => $finapiUserId ? "Payment for FinAPI User: $finapiUserId" : "Payment for FinAPI User",
-            // "sepaPurposeCode" => "SALA",
-            // "endToEndId" => "endToEndId"
+        dump('No or invalid Transactions!');
+        return null;
+    }
+
+    public static function buildTransactionFilters(Request $request)
+    {
+        // https://docs.finapi.io/#get-/api/v2/transactions/-id-
+
+        $rules = [
+            'ids' => 'nullable|array|max:1000',
+            'ids.*' => 'integer',
+            'view' => 'nullable|in:bankView,userView',
+            'search' => 'nullable|string|max:255',
+            'counterpart' => 'nullable|string|max:255',
+            'purpose' => 'nullable|string|max:255',
+            'currency' => 'nullable|in:AED,AFN,ALL,AMD,ANG,AOA,ARS,AUD,AWG,AZN,BAM,BBD,BDT,BGN,BHD,BIF,BMD,BND,BOB,BOV,BRL,BSD,BTN,BWP,BYN,BZD,CAD,CDF,CHE,CHF,CHN,CHW,CLF,CLP,CNY,COP,COU,CRC,CUC,CUP,CVE,CZK,DJF,DKK,DOP,DZD,EGP,ERN,ETB,EUR,FJD,FKP,GBP,GEL,GGP,GHS,GIP,GMD,GNF,GTQ,GYD,HKD,HNL,HRK,HTG,HUF,IDR,ILS,IMP,INR,IQD,IRR,ISK,JEP,JMD,JOD,JPY,KES,KGS,KHR,KID,KMF,KPW,KRW,KWD,KYD,KZT,LAK,LBP,LKR,LRD,LSL,LYD,MAD,MDL,MGA,MKD,MMK,MNT,MOP,MRU,MUR,MVR,MWK,MXN,MXV,MYR,MZN,NAD,NGN,NIO,NIS,NOK,NPR,NTD,NZD,OMR,PAB,PEN,PGK,PHP,PKR,PLN,PRB,PYG,QAR,RMB,RON,RSD,RUB,RWF,SAR,SBD,SCR,SDG,SEK,SGD,SHP,SLL,SLS,SOS,SRD,SSP,STN,SVC,SYP,SZL,THB,TJS,TMT,TND,TOP,TRY,TTD,TVD,TWD,TZS,UAH,UGX,USD,USN,UYI,UYU,UYW,UZS,VEF,VES,VND,VUV,WST,XAF,XAG,XAU,XBA,XBB,XBC,XBD,XCD,XDR,XOF,XPD,XPF,XPT,XSU,XTS,XUA,XXX,YER,ZAR,ZMW,ZWB,ZWL',
+            'accountIds' => 'nullable',
+            'accountIds.*' => 'integer',
+            'minBankBookingDate' => 'nullable|date_format:Y-m-d',
+            'maxBankBookingDate' => 'nullable|date_format:Y-m-d|after_or_equal:minBankBookingDate',
+            'minFinapiBookingDate' => 'nullable|date_format:Y-m-d',
+            'maxFinapiBookingDate' => 'nullable|date_format:Y-m-d|after_or_equal:minFinapiBookingDate',
+            'minAmount' => 'nullable|numeric',
+            'maxAmount' => 'nullable|numeric|gte:minAmount',
+            'direction' => 'nullable|in:all,income,spending',
+            'labelIds' => 'nullable|array',
+            'labelIds.*' => 'integer',
+            'categoryIds' => 'nullable|array',
+            'categoryIds.*' => 'integer',
+            'includeChildCategories' => 'nullable|boolean',
+            'isNew' => 'nullable|boolean',
+            'isPotentialDuplicate' => 'nullable|boolean',
+            'isAdjustingEntry' => 'nullable|boolean',
+            'minImportDate' => 'nullable|date_format:Y-m-d',
+            'maxImportDate' => 'nullable|date_format:Y-m-d|after_or_equal:minImportDate',
+            'page' => 'nullable|integer|min:1',
+            'perPage' => 'nullable|integer|min:1|max:500',
+            'order' => 'nullable|array',
+            'order.*' => 'string|in:id,parentId,accountId,valueDate,bankBookingDate,finapiBookingDate,amount,purpose,counterpartName,counterpartAccountNumber,counterpartIban,counterpartBlz,counterpartBic,asc,desc',
         ];
 
-        return [
-            "orders" => [
-                $order
-            ],
-            // "profileId" => "a2c9fc3b-1777-403c-8b2f-1ce4d90157a2",
-            // "redirectUrl" => "https://terd/callback",
-            // "callbacks" => [
-            //     "finalised" => "https://terd/callback?state=42"
-            // ],
-            // "sender" => [
-            //     "iban" => "DE77533700080111111100"
-            // ],
-            "instantPayment" => false,
-            "allowTestBank" => true
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json(['success' => false, 'errors' => $validator->errors()->all()], 400);
+        }
+
+        $filters = [
+            'ids' => $request->input('ids'),
+            'view' => $request->input('view', 'userView'),
+            'search' => $request->input('search'),
+            'counterpart' => $request->input('counterpart'),
+            'purpose' => $request->input('purpose'),
+            'currency' => $request->input('currency'),
+            'accountIds' => $request->input('accountIds'),
+            'minBankBookingDate' => $request->input('minBankBookingDate'),
+            'maxBankBookingDate' => $request->input('maxBankBookingDate'),
+            'minFinapiBookingDate' => $request->input('minFinapiBookingDate'),
+            'maxFinapiBookingDate' => $request->input('maxFinapiBookingDate'),
+            'minAmount' => $request->input('minAmount'),
+            'maxAmount' => $request->input('maxAmount'),
+            'direction' => $request->input('direction', 'all'),
+            'labelIds' => $request->input('labelIds'),
+            'categoryIds' => $request->input('categoryIds'),
+            'includeChildCategories' => $request->input('includeChildCategories', true),
+            'isNew' => $request->input('isNew'),
+            'isPotentialDuplicate' => $request->input('isPotentialDuplicate'),
+            'isAdjustingEntry' => $request->input('isAdjustingEntry'),
+            'minImportDate' => $request->input('minImportDate'),
+            'maxImportDate' => $request->input('maxImportDate'),
+            'page' => $request->input('page', 1),
+            'perPage' => $request->input('perPage', 20),
+            'order' => $request->input('order', ['id', 'ASC']),
         ];
+
+        $filters = array_filter($filters, function ($value) {
+            return !is_null($value) && $value !== '';
+        });
+
+        return $filters;
+    }
+
+    public static function fetchBankConnections($userAccessToken, $filters=null)
+    {
+        // https://docs.finapi.io/#get-/api/v2/bankConnections/-id-
+
+        $url = "https://sandbox.finapi.io/api/v2/bankConnections";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+            'query' => $filters
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Transactions!');
+        return null;
     }
 }

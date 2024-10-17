@@ -175,7 +175,7 @@ class PaymentController extends Controller
                 'type' => $finApiStandalonePaymentForm->type,
                 'standing_order_id' => $confirmationNumber
             ];
-            FinApiLoggerService::logPaymentForm($payment->id, $formData);
+            FinApiLoggerService::logFinapiForm($formData, $payment->id);
 
             return response()->json($finApiStandalonePaymentForm);
         }

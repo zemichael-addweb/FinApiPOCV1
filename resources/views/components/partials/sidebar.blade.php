@@ -27,7 +27,7 @@
                             <!-- Menu Item Dashboard -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                    href="/dashboard" 
+                                    href="/dashboard"
                                     @click="selected = 'dashboard'"
                                     :class="{ 'bg-graydark dark:bg-meta-4': selected === 'dashboard' || '{{ Request::is('dashboard*') }}' }">
                                     <i class="fa fa-dashboard me-1 text-blue f-10"></i>
@@ -39,7 +39,7 @@
                             <!-- Menu Item Orders -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                    href="/orders" 
+                                    href="/orders"
                                     @click="selected = 'orders'"
                                     :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-orders' || '{{ Request::is('orders*') }}' }">
                                     <i class="fa fa-brands fa-shopify"></i>
@@ -47,10 +47,21 @@
                                 </a>
                             </li>
                             <!-- Menu Item Orders -->
+                            <!-- Menu Item Bank -->
+                            <li>
+                                <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
+                                    href="/bank"
+                                    @click="selected = 'bank'"
+                                    :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-bank' || '{{ Request::is('bank*') }}' }">
+                                    <i class="fa-solid fa-building-columns"></i>
+                                    Bank
+                                </a>
+                            </li>
+                            <!-- Menu Item Bank -->
                             <!-- Menu Users Settings -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                    href="/users" 
+                                    href="/users"
                                     @click="selected = 'users'"
                                     :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-users' || '{{ Request::is('users*') }}' }">
                                     <i class="fa-solid fa-users"></i>
@@ -61,8 +72,8 @@
                             <!-- Menu Item Settings -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
-                                    href="/settings" 
-                                    @click="selected = 'settings'"                                 
+                                    href="/settings"
+                                    @click="selected = 'settings'"
                                     :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-settings' || '{{ Request::is('settings*') }}' }">
                                     <i class="fa-solid fa-gear"></i>
                                     Settings
@@ -87,7 +98,7 @@
                         <li>
                             <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                 href="{{ route('payments.index') }}"
-                                @click="selected = 'payments'"                                 
+                                @click="selected = 'payments'"
                                 :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-payments' || '{{ Request::is('payments*') }}' }">
                                 <i class="fa-solid fa-money-bill-wave"></i>
                                 Payments

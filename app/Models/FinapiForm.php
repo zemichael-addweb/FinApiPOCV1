@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class PaymentForm extends Model
+class FinapiForm extends Model
 {
-    protected $table = 'payment_forms';
+    protected $table = 'finapi_forms';
 
     protected $fillable = [
         'payment_id',

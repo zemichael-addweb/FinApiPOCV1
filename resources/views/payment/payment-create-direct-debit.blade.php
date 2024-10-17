@@ -74,17 +74,17 @@
                     <span class="text-sm text-gray-600 dark:text-gray-400">Preferred</span>
                 </div>
 
-                <div x-show="errorMessage" class="text-red-600">
+                <div x-show="errorMessage" class="mb-4 text-red-600">
                     <p x-text="errorMessage"></p>
                 </div>
 
-                <div class="flex justify-end">
+                <div class="mb-4">
                     <button type="button"
                             @click="proceedToPayment"
                             :disabled="loading"
-                            class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                        <span x-show="loading">Processing...</span>
-                        <span x-show="!loading">Create Direct Debit</span>
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            :class="loading ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
+                            x-text="loading ? 'Processing...' : 'Create Direct Debit'">
                     </button>
                 </div>
             </form>
