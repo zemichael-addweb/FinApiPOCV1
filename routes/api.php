@@ -3,6 +3,7 @@
 use App\Http\Controllers\FinApiController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\WebformController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,7 @@ Route::group(['prefix' => 'v1'], function () {
 
     // Route for getting access token
     Route::post('/get-access-token', [FinApiController::class, 'getAccessToken']);
+    Route::get('/get-webforms', [WebformController::class, 'getWebforms']);
 
     // Shopify routes
     Route::prefix('shopify')->group(function () {

@@ -8,6 +8,7 @@ use App\Services\HelperServices;
 use Exception;
 use FinAPI\Client\Api\AuthorizationApi;
 use GuzzleHttp\Client;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 

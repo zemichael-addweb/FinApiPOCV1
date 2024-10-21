@@ -4,12 +4,14 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepositController;
+use App\Http\Controllers\FinApiController;
 use App\Http\Controllers\FinapiPaymentRecipientController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopifyAuthController;
 use App\Http\Controllers\ShopifyController;
+use App\Http\Controllers\WebformController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\VerifyShopifyRequest;
 use Illuminate\Support\Facades\Request;
@@ -47,11 +49,18 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
         Route::get( '/settings', [AdminController::class, 'settings'] );
+        Route::prefix('payment')->group(function () {
+            Route::get( '/get-payment', [PaymentController::class, 'getFinapiPayment'] )->name('admin.payment.getpayment');
+        });
         Route::prefix('bank')->group(function () {
             Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');
             Route::get( '/get-transactions', [BankController::class, 'getTransactions'] )->name('admin.bank.get-transactions');
             Route::get( '/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
             Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
+        });
+        Route::resource( '/webforms', WebformController::class);
+        Route::prefix('webform')->group(function () {
+            Route::get( '/get-webforms', [WebformController::class, 'getWebforms'] )->name('admin.webform.get-webforms');
         });
 });
 

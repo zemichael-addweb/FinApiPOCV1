@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FinAPIAccessToken;
+use App\Models\FinapiPayment;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
 use App\Models\Payment;
@@ -41,8 +42,14 @@ class PaymentController extends Controller
     // resource controller
     public function index()
     {
+        $finapiPayments = FinapiPayment::all()->map(function ($payment) {
+            return collect($payment)->mapWithKeys(function ($value, $key) {
+                return [Str::camel($key) => $value];
+            });
+        });
+
         $pageTitle = 'view-payment';
-        return view('payment.payment-index', ['pageTitle'=>$pageTitle]); // ! may list payments
+        return view('payment.payment-index', compact('finapiPayments', 'pageTitle'));
     }
 
     public function create()
@@ -83,6 +90,31 @@ class PaymentController extends Controller
     public function destroy($id)
     {
         return '404 Not Found';
+    }
+
+    public function getFinapiPayment($id = null)
+    {
+        if(!$id){
+            $id=request()->id;
+        }
+        $finapiPayment = FinapiPayment::where('finapi_id', $id)->first();
+        if(!$finapiPayment){
+            return response()->json(['error' => 'Payment not found'], 404);
+        }
+        try{
+            $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+
+            if($finApiUserAccessToken instanceof JsonResponse){
+                return $finApiUserAccessToken;
+            }
+
+            $finapiPayment = FinAPIService::getPaymentDetails($finApiUserAccessToken->access_token, $finapiPayment->finapi_id);
+
+            return response()->json($finapiPayment);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+        return response()->json($finapiPayment);
     }
 
     public function makeDirectDebitWithApi(Request $request)

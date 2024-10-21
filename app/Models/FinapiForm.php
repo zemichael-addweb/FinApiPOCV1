@@ -11,6 +11,7 @@ class FinapiForm extends Model
     protected $fillable = [
         'payment_id',
         'finapi_user_id',
+        'finapi_payment_id',
         'form_id',
         'form_url',
         'expire_time',

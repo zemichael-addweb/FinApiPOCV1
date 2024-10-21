@@ -16,7 +16,7 @@ class OrderController extends Controller
     {
         $shopifyOrders = ShopifyApiServices::getShopifyOrders()->getData();
 
-        if(!$shopifyOrders->success || empty($shopifyOrders->data)) {
+        if(!isset($shopifyOrders->success) || empty($shopifyOrders->data)) {
             return view('order.order-index', ['orders' => []]);
         }
         return view('order.order-index', ['orders' => $shopifyOrders->data]);

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FinAPIAccessToken;
+use App\Models\FinapiPayment;
 use App\Services\HelperServices;
 use Exception;
 use FinAPI\Client\Api\AuthorizationApi;
@@ -128,14 +129,18 @@ class FinAPIService {
                 }
 
                 if ($type === 'user') {
-                    $user = auth()->user();
-                    $email = $email ?? ($user ? $user->email : 'email@localhost.de');
-                    $password = $password ?? 'hellopassword';
+                    $finApiUser = FinapiUser::where('username', $email)->first();
 
-                    // Check if the FinAPI user already exists
-                    $finApiUser = $user
-                        ? FinapiUser::where('user_id', $user->id)->first()
-                        : FinapiUser::where('email', $email)->first();
+                    if(!$finApiUser) {
+                        $user = auth()->user();
+                        $email = $email ?? ($user ? $user->email : 'email@localhost.de');
+                        $password = $password ?? 'hellopassword';
+
+                        // Check if the FinAPI user already exists
+                        $finApiUser = $user
+                            ? FinapiUser::where('user_id', $user->id)->first()
+                            : FinapiUser::where('email', $email)->first();
+                    }
 
                     // If the FinAPI user doesn't exist, create a new one
                     if (!$finApiUser) {
@@ -302,11 +307,26 @@ class FinAPIService {
         FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['ids' => $paymentId], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
+            $fetchedPayments = json_decode($responseBody);
+            if (isset($fetchedPayments->payments) && count($fetchedPayments->payments) > 0) {
+                self::updateFinapiPaymentDetail($fetchedPayments->payments);
+            }
             return json_decode($responseBody);
         }
 
         dump('No or invalid payment!');
         return null;
+    }
+
+    public static function updateFinapiPaymentDetail($fetchedPayments){
+        foreach ($fetchedPayments as $fetchedPayment) {
+            $finApiPayment = FinapiPayment::where('payment_id', $fetchedPayment->id)->first();
+            if ($finApiPayment) {
+                    $finApiPayment->status = $fetchedPayment->status;
+                    $finApiPayment->status_v2 = $fetchedPayment->statusV2;
+                    $finApiPayment->save();
+            }
+        }
     }
 
     public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null)
@@ -767,6 +787,68 @@ class FinAPIService {
         }
 
         dump('No or invalid Transactions!');
+        return null;
+    }
+
+    public static function fetchWebform($userAccessToken, $id)
+    {
+        https://docs.finapi.io/#get-/api/webForms/-id-
+
+        if(!$id){
+            dump('No or invalid Form ID!');
+            return null;
+        }
+
+        $url = "https://webform-sandbox.finapi.io/api/webForms/$id";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> ['id' => $id]], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Forms!');
+        return null;
+    }
+
+    public static function fetchWebforms($userAccessToken, $filters=null)
+    {
+        // https://docs.finapi.io/#get-/api/webForms
+
+        $url = "https://webform-sandbox.finapi.io/api/webForms";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+            'query' => $filters
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Forms!');
         return null;
     }
 }
