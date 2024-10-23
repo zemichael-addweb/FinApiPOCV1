@@ -27,10 +27,11 @@
             <div class="w-full">
                 <div class="w-full -mx-3 m-3 p-3">
                     <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white dark:bg-slate-900 border border-slate-800 dark:border-slate-100">
+                        <table x-show="payments && payments.length > 0" class="min-w-full bg-white dark:bg-slate-900 border border-slate-800 dark:border-slate-100">
                             <thead>
                                 <tr>
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">ID</th>
+                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Finapi ID</th>
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">IBAN</th>
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Amount</th>
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Type</th>
@@ -43,9 +44,11 @@
                                 <template x-for="payment in payments" :key="payment.id">
                                     <tr class="bg-slate-50 dark:bg-slate-800 border-b border-slate-900 dark:border-slate-50">
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="payment.id"></td>
+                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="payment.finapiId"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="payment.iban"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="payment.amount"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="payment.type"></td>
+                                        <td x-bind:class="payment.statusV2 =='DISCARDED' ? 'bg-red-500' : (payment.statusV2 =='SUCCESSFUL'? 'bg-green-500' : 'bg-yellow-500')"
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="payment.statusV2"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="formatDate(payment.requestDate)"></td>
                                         <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100">
@@ -60,6 +63,7 @@
                                 </template>
                             </tbody>
                         </table>
+                        <div x-show="!payments || payments.length === 0" class="text-wrap bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative" role="alert">No Payments Found!
                     </div>
                 </div>
             </div>
@@ -92,8 +96,6 @@
                                   const index = this.payments.findIndex(payment => payment.finapiId === finapiId);
                                   const fetchedPayment = data.payments[0];
                                   fetchedPayment.finapiId = finapiId;
-                                  console.log('index', this.payments[index]);
-                                  console.log('fetched', fetchedPayment);
                                   fetchedPayment.id = this.payments[index].id;
                                   this.payments[index] = fetchedPayment;
                                   this.successMessage = "Payment information refreshed successfully!";

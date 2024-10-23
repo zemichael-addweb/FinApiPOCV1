@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::table('finapi_forms', function (Blueprint $table) {
             $table->unsignedBigInteger('finapi_payment_id')->nullable()->after('finapi_user_id');
-
             $table->foreign('finapi_payment_id')->references('id')->on('finapi_payments')->onDelete('cascade');
         });
     }
