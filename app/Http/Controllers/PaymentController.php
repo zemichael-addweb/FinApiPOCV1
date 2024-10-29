@@ -6,7 +6,6 @@ use App\Models\FinAPIAccessToken;
 use App\Models\FinapiPayment;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Models\Payment;
 use App\Services\FinApiLoggerService;
 use App\Services\FinAPIService;
 use App\Services\OpenApiEnumModelService;
@@ -92,6 +91,13 @@ class PaymentController extends Controller
         return '404 Not Found';
     }
 
+    public function getPayments()
+    {
+        $payments = FinapiPayment::with('user','finapiUser','form')->get();
+
+        return response()->json($payments);
+    }
+
     public function getFinapiPayment($id = null)
     {
         if(!$id){
@@ -162,29 +168,21 @@ class PaymentController extends Controller
         $currency = $request->input('currency');
         $confirmationNumber = $request->input('confirmationNumber');
 
-        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+        $email = $request->input('email');
+        $username = $request->input('username');
+
+        $finApiUserAccessToken = FinAPIService::getAccessToken('user', $email);
 
         if($finApiUserAccessToken instanceof JsonResponse){
             return $finApiUserAccessToken;
         }
 
-        $finApiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
-
-        $payment = new Payment([
-            'finapi_user_id' => $finApiUser->id,
-            'order_ref_number' => $confirmationNumber,
-            'amount' => $amount,
-            'currency' => $currency,
-            'type' => 'ORDER', // TODO and this
-            'status' => 'PENDING',
-        ]);
-
-        $payment->save();
+        $finapiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
 
         $paymentDetails = FinAPIService::buildPaymentDetails(
-            $payment->amount,
-            $payment->currency,
-            $finApiUser->username,
+            $amount,
+            $currency,
+            $finapiUser->username,
         );
 
         if(!$paymentDetails){
@@ -193,21 +191,24 @@ class PaymentController extends Controller
 
         try{
             $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
-            // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
         if($finApiStandalonePaymentForm) {
             $formData = [
-                'finapi_user_id' => $finApiUser->id,
-                'form_id' => $finApiStandalonePaymentForm->id,
+                'finapi_user_id' => $finapiUser->id,
+                'finapi_id' => $finApiStandalonePaymentForm->id,
+                'form_purpose' => 'PAYMENT',
                 'form_url' => $finApiStandalonePaymentForm->url,
                 'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                 'type' => $finApiStandalonePaymentForm->type,
-                'standing_order_id' => $confirmationNumber
+                'status' => $finApiStandalonePaymentForm->status,
+                'order_conf_number' => $confirmationNumber,
+                'error_code' => isset($finApiStandalonePaymentForm->payload->errorCode) ? $finApiStandalonePaymentForm->payload->errorCode : null,
+                'error_message' => isset($finApiStandalonePaymentForm->payload->errorMessage) ? $finApiStandalonePaymentForm->payload->errorCode : null,
             ];
-            FinApiLoggerService::logFinapiForm($formData, $payment->id);
+            FinApiLoggerService::logFinapiForm($formData);
 
             return response()->json($finApiStandalonePaymentForm);
         }

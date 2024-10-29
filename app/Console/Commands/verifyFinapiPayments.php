@@ -2,12 +2,12 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Deposit;
 use App\Models\FinapiForm;
 use App\Models\FinapiPayment;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use App\Models\FinapiUser;
-use App\Models\Payment;
 use App\Services\FinAPIService;
 use GuzzleHttp\Client;
 
@@ -83,31 +83,23 @@ class verifyFinapiPayments extends Command
                 }
 
                 foreach ($paymentDetails->payments as $payment) {
-                    $savedPayment = Payment::where('id', $payment->id)->first();
+                    $savedPayment = FinapiPayment::where('finapi_id', $payment->id)->first();
 
                     if ($savedPayment) {
                         $savedPayment->status = $payment->status;
+                        $savedPayment->status_v2 = $payment->statusV2;
                         $savedPayment->save();
                     } else {
-                        $savedPayment = Payment::create([
-                            'finapi_user_id' => $finapiUser->id,
-                            'amount' => $payment->amount,
-                            'currency' => 'EUR',
-                            'type' => 'ORDER', // schema does not match
-                            'status' => $payment->status
-                        ]);
-
-                        $savedPayment->save();
-                    }
-
-                    if($finapiPayment) {
-                        $finapiPayment->status_v2 = $payment->statusV2;
-                        $finapiPayment->save();
-                    } else {
-                        $finapiPayment = FinapiPayment::create([
+                        $savedPayment = FinapiPayment::create([
                             'finapi_id' => $payment->id,
                             'finapi_user_id' => $finapiUser->id,
-                            'payment_id' => $savedPayment->id,
+
+                            // 'finapi_form_id' => ! figure out how to match
+                            // 'deposit_id' => ! figure out how to match
+                            // 'order_ref_number' => ! figure out how to match
+                            // 'purpose' => ! figure out how to match
+                            // 'currency' => ! figure out how to match
+
                             'iban' => $payment->iban,
                             'bank_id' => $payment->bankId,
                             'type' => $payment->type,
@@ -123,6 +115,37 @@ class verifyFinapiPayments extends Command
                     }
 
                     $updatedPayments[] = $savedPayment;
+
+                    if($savedPayment->finapi_form_id) {
+                        $loggedForm = FinapiForm::where('id', $savedPayment->finapi_form_id)->first();
+
+                        if(!$loggedForm){
+                            continue;
+                        }
+                    }
+
+                    $formPurpose = $loggedForm->form_purpose;
+
+                    if($formPurpose == 'DEPOSIT' && $payment->statusV2 == 'SUCCESSFUL' && auth()->user()){
+                        $userDeposit = Deposit::where('user_id', auth()->user()->id)->first();
+                        if($userDeposit){
+                            $userDeposit->remaining_balance += $payment->amount;
+                            $userDeposit->save();
+                        } else {
+                            $userDeposit = Deposit::create([
+                                'user_id' => auth()->user()->id,
+                                'email' => auth()->user()->email,
+                                'deposited_at' => now(),
+                                'status' => $payment->status,
+                                'remaining_balance' => $payment->amount
+                            ]);
+
+                            $userDeposit->save();
+                        }
+                    }
+
+                    $finapiPayment->deposit_id = $userDeposit->id;
+                    $finapiPayment->save();
                 }
 
                 $this->info('Updated Payment Details : ' . json_encode($updatedPayments));

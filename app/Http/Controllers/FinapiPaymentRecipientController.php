@@ -18,12 +18,17 @@ class FinapiPaymentRecipientController extends Controller
     // Show form to create a new recipient
     public function show()
     {
-        return redirect()->route('finapiPaymnetRecipients.index');
+        return redirect()->to('/settings/finapi-payment-recipient');
     }
 
     // Show form to create a new recipient
     public function create()
     {
+        $recipient = FinapiPaymentRecipient::first();
+
+        if($recipient) {
+            return view('finapiPaymnetRecipients.edit', compact('recipient'));
+        }
         return view('finapiPaymnetRecipients.create');
     }
 
@@ -44,7 +49,8 @@ class FinapiPaymentRecipientController extends Controller
 
         FinapiPaymentRecipient::create($validatedData);
 
-        return redirect()->route('finapiPaymnetRecipients.create')->with('success', 'Recipient created successfully.');
+        return redirect()->to('/settings/finapi-payment-recipient')
+        ->with('success', 'Recipient created successfully.');
     }
 
     // Show form to edit an existing recipient
@@ -52,7 +58,8 @@ class FinapiPaymentRecipientController extends Controller
     {
         $recipient = FinapiPaymentRecipient::find($id);
         if(!$recipient){
-            return redirect()->route('finapiPaymnetRecipients.create')->with('error', 'Recipient not found. Please create a new one');
+            return redirect()->to('/settings/finapi-payment-recipient')
+            ->with('error', 'Recipient not found. Please create a new one');
         }
         return view('finapiPaymnetRecipients.edit', compact('recipient'));
     }
@@ -63,7 +70,8 @@ class FinapiPaymentRecipientController extends Controller
         $recipient = FinapiPaymentRecipient::find($id);
 
         if(!$recipient){
-            return redirect()->route('finapiPaymnetRecipients.create')->with('error', 'Recipient not found. Please create a new one');
+            return redirect()->to('/settings/finapi-payment-recipient')
+            ->with('error', 'Recipient not found. Please create a new one');
         }
 
         $validatedData = $request->validate([
@@ -80,6 +88,7 @@ class FinapiPaymentRecipientController extends Controller
 
         $recipient->update($validatedData);
 
-        return redirect()->route('finapiPaymnetRecipients.index')->with('success', 'Recipient updated successfully.');
+        return redirect()->to('/settings/finapi-payment-recipient')
+        ->with('success', 'Recipient updated successfully.');
     }
 }

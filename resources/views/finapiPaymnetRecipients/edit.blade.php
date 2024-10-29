@@ -15,7 +15,7 @@
                     <!-- Name -->
                     <div>
                         <label for="name" class="block text-sm font-medium">Name</label>
-                        <input type="text" name="name" id="name" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('name', $recipient->name) }}" required>
+                        <input type="text" name="name" id="name" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('name', $recipient->name) }}" required>
                         @error('name')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -24,7 +24,7 @@
                     <!-- IBAN -->
                     <div>
                         <label for="iban" class="block text-sm font-medium">IBAN</label>
-                        <input type="text" name="iban" id="iban" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('iban', $recipient->iban) }}" required>
+                        <input type="text" name="iban" id="iban" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('iban', $recipient->iban) }}" required>
                         @error('iban')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -33,7 +33,7 @@
                     <!-- BIC (Optional) -->
                     <div>
                         <label for="bic" class="block text-sm font-medium">BIC (Optional)</label>
-                        <input type="text" name="bic" id="bic" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('bic', $recipient->bic) }}">
+                        <input type="text" name="bic" id="bic" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('bic', $recipient->bic) }}">
                         @error('bic')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -42,7 +42,7 @@
                     <!-- Bank Name (Optional) -->
                     <div>
                         <label for="bank_name" class="block text-sm font-medium">Bank Name (Optional)</label>
-                        <input type="text" name="bank_name" id="bank_name" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('bank_name', $recipient->bank_name) }}">
+                        <input type="text" name="bank_name" id="bank_name" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('bank_name', $recipient->bank_name) }}">
                         @error('bank_name')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -51,7 +51,7 @@
                     <!-- Address: Street (Optional) -->
                     <div>
                         <label for="street" class="block text-sm font-medium">Street (Optional)</label>
-                        <input type="text" name="street" id="street" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('street', $recipient->street) }}">
+                        <input type="text" name="street" id="street" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('street', $recipient->street) }}">
                         @error('street')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -60,7 +60,7 @@
                     <!-- Address: House Number (Optional) -->
                     <div>
                         <label for="house_number" class="block text-sm font-medium">House Number (Optional)</label>
-                        <input type="text" name="house_number" id="house_number" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('house_number', $recipient->house_number) }}">
+                        <input type="text" name="house_number" id="house_number" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('house_number', $recipient->house_number) }}">
                         @error('house_number')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -69,7 +69,7 @@
                     <!-- Address: Post Code (Optional) -->
                     <div>
                         <label for="post_code" class="block text-sm font-medium">Post Code (Optional)</label>
-                        <input type="text" name="post_code" id="post_code" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('post_code', $recipient->post_code) }}">
+                        <input type="text" name="post_code" id="post_code" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('post_code', $recipient->post_code) }}">
                         @error('post_code')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -78,7 +78,7 @@
                     <!-- Address: City (Optional) -->
                     <div>
                         <label for="city" class="block text-sm font-medium">City (Optional)</label>
-                        <input type="text" name="city" id="city" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('city', $recipient->city) }}">
+                        <input type="text" name="city" id="city" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('city', $recipient->city) }}">
                         @error('city')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror
@@ -87,7 +87,7 @@
                     <!-- Country (Optional) -->
                     <div>
                         <label for="country" class="block text-sm font-medium">Country (Optional)</label>
-                        <input type="text" name="country" id="country" class="mt-1 block w-full border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" value="{{ old('country', $recipient->country) }}">
+                        <input type="text" name="country" id="country" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm" value="{{ old('country', $recipient->country) }}">
                         @error('country')
                             <p class="text-red-600 text-sm">{{ $message }}</p>
                         @enderror

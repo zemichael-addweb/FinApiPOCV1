@@ -24,9 +24,11 @@ class FinApiLoggerService
     public static function logFinapiForm($formData, $paymentId = null)
     {
         return FinapiForm::create([
-            'payment_id' => $paymentId,
+            'finapi_payment_id' => $paymentId,
             'finapi_user_id' => $formData['finapi_user_id'] ?? null,
-            'form_id' => $formData['form_id'] ?? null,
+            'order_conf_number' => $formData['standing_order_id'] ?? null,
+            'purpose' => $formData['purpose'] ?? null,
+            'finapi_id' => $formData['finapi_id'] ?? null,
             'form_url' => $formData['form_url'] ?? null,
             'expire_time' => $formData['expire_time'] ?? null,
             'type' => $formData['type'] ?? null,

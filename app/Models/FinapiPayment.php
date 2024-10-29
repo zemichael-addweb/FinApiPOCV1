@@ -15,8 +15,12 @@ class FinapiPayment extends Model
         'finapi_id',
         'user_id',
         'finapi_user_id',
+        'deposit_id',
+        'order_ref_number',
+        'purpose',
+        'currency',
         'payment_id',
-        'form_id',
+        'finapi_form_id',
         'account_id',
         'iban',
         'bank_id',
@@ -57,14 +61,6 @@ class FinapiPayment extends Model
     public function finapiUser()
     {
         return $this->belongsTo(FinapiUser::class);
-    }
-
-    /**
-     * Get the related payment.
-     */
-    public function payment()
-    {
-        return $this->belongsTo(Payment::class);
     }
 
     /**

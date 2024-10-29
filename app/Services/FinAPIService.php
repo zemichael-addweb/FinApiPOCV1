@@ -2,28 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\FinAPIAccessToken;
-use App\Models\FinapiForm;
 use App\Models\FinapiPayment;
-use App\Services\HelperServices;
 use Exception;
-use FinAPI\Client\Api\AuthorizationApi;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
 use stdClass;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Models\Payment;
 use App\Services\FinApiLoggerService;
-use App\Services\OpenApiEnumModelService;
 use Carbon\Carbon;
-use FinAPI\Client\Api\PaymentsApi;
-use FinAPI\Client\Configuration;
-use FinAPI\Client\Model\CreateMoneyTransferParams;
-use FinAPI\Client\Model\Currency;
-use FinAPI\Client\Model\ISO3166Alpha2Codes;
-use FinAPI\Client\Model\MoneyTransferOrderParams;
-use FinAPI\Client\Model\MoneyTransferOrderParamsCounterpartAddress;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -95,6 +81,8 @@ class FinAPIService {
 
     public static function createFinApiUser($accessToken, $userDetails)
     {
+
+        dd($userDetails, $accessToken);
         $baseUrl =  self::getBaseUrl();
         $url = "$baseUrl/api/v2/users";
         $requestId = self::createUUID();
@@ -123,89 +111,90 @@ class FinAPIService {
         return null;
     }
 
-    public static function getAccessToken($type, $email = null, $password = null) {
+    public static function getAccessToken($type, $email = null, $password = null, $username = null) {
         try {
-                if ($type === 'client') {
-                    return FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
-                }
-
-                if ($type === 'user') {
-                    $finApiUser = FinapiUser::where('username', $email)->first();
-
-                    if(!$finApiUser) {
-                        $user = auth()->user();
-                        $email = $email ?? ($user ? $user->email : 'email@localhost.de');
-                        $password = $password ?? 'hellopassword';
-
-                        // Check if the FinAPI user already exists
-                        $finApiUser = $user
-                            ? FinapiUser::where('user_id', $user->id)->first()
-                            : FinapiUser::where('email', $email)->first();
-                    }
-
-                    // If the FinAPI user doesn't exist, create a new one
-                    if (!$finApiUser) {
-                        $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
-
-                        if ($accessToken) {
-                            $fetchedFinApiUser = FinAPIService::createFinApiUser($accessToken->access_token, [
-                                'id' => Str::random(),
-                                'password' => $password,
-                                'email' => $email,
-                                'isAutoUpdateEnabled' => true
-                            ]);
-
-                            if ($fetchedFinApiUser) {
-                                $finApiUser = new FinapiUser([
-                                    'user_id' => $user ? $user->id : null,
-                                    'username' => $fetchedFinApiUser->id,
-                                    'password' => $fetchedFinApiUser->password,
-                                    'email' => $email,
-                                ]);
-
-                                $finApiUser->save();
-                            }
-                        }
-                    }
-
-                    if ($finApiUser) {
-                        if (isset($finApiUser->expire_at)) {
-                            $now = Carbon::now();
-                            $expiresAt = Carbon::parse($finApiUser->expire_at);
-                            $finApiUserAccessToken = null;
-
-                            if (!isset($finApiUser->refresh_token)) {
-                                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
-                            } elseif ($now->lt($expiresAt)) {
-                                return $finApiUser;
-                            }
-                            // else {
-                            //     $finApiUserAccessToken = FinAPIService::getOAuthToken('refresh_token', null, null, $finApiUser->refresh_token);
-                            // }
-
-                            if (!isset($finApiUserAccessToken->access_token)) {
-                                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
-                            }
-
-                            if ($finApiUserAccessToken && isset($finApiUserAccessToken->access_token)) {
-                                $finApiUser->access_token = $finApiUserAccessToken->access_token;
-                                $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
-                                $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
-
-                                $finApiUser->save();
-                                return $finApiUserAccessToken;
-                            }
-                        }
-                        return $finApiUser;
-                    }
-                }
-
-                return response()->json(['error' => 'Type needs to either be "client" or "user"'], 400);
-            } catch (Exception $e) {
-                return response()->json(['error' => $e->getMessage()], 500);
+            if ($type === 'client') {
+                return FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
             }
 
-            return null;
+            if ($type === 'user') {
+                $finApiUser = FinapiUser::where('email', $email)
+                ->orWhere('username', $username)
+                ->first();
+
+                if(!$finApiUser) {
+                    $user = auth()->user();
+                    $email = $email ?? ($user ? $user->email : 'email@localhost.de');
+                    $password = $password ?? 'hellopassword';
+
+                    // Check if the FinAPI user already exists
+                    $finApiUser = $user
+                        ? FinapiUser::where('user_id', $user->id)->first()
+                        : FinapiUser::where('email', $email)->first();
+                }
+
+                // If the FinAPI user doesn't exist, create a new one
+                if (!$finApiUser) {
+                    $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
+
+                    if ($accessToken) {
+                        $fetchedFinApiUser = FinAPIService::createFinApiUser($accessToken->access_token, [
+                            'id' => Str::random(),
+                            'password' => $password,
+                            'email' => $email,
+                            'isAutoUpdateEnabled' => true
+                        ]);
+
+                        if ($fetchedFinApiUser) {
+                            $finApiUser = new FinapiUser([
+                                'user_id' => $user ? $user->id : null,
+                                'username' => $fetchedFinApiUser->id,
+                                'password' => $fetchedFinApiUser->password,
+                                'email' => $email,
+                            ]);
+
+                            $finApiUser->save();
+                        }
+                    }
+                }
+
+                if (isset($finApiUser->expire_at)) {
+                    $now = Carbon::now();
+                    $expiresAt = Carbon::parse($finApiUser->expire_at);
+                    $finApiUserAccessToken = null;
+
+                    if (!isset($finApiUser->refresh_token)) {
+                        $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                    } elseif ($now->lt($expiresAt)) {
+                        return $finApiUser;
+                    }
+                    // else {
+                    //     $finApiUserAccessToken = FinAPIService::getOAuthToken('refresh_token', null, null, $finApiUser->refresh_token);
+                    // }
+
+                    if (!isset($finApiUserAccessToken->access_token)) {
+                        $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                    }
+
+                    if ($finApiUserAccessToken && isset($finApiUserAccessToken->access_token)) {
+                        $finApiUser->access_token = $finApiUserAccessToken->access_token;
+                        $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
+                        $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
+
+                        $finApiUser->save();
+                        return $finApiUserAccessToken;
+                    }
+                }
+                return $finApiUser;
+
+            }
+
+            return response()->json(['error' => 'Type needs to either be "client" or "user"'], 400);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        return null;
     }
 
     public static function getBankConnectionForm($userAccessToken, $paymentDetails)
@@ -278,7 +267,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['form_id',$formId], $responseCode, $responseBody, $requestId);
+        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['finapi_form_id',$formId], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);

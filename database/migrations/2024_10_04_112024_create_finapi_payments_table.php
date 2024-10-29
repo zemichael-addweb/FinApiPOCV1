@@ -16,8 +16,10 @@ return new class extends Migration
             $table->string('finapi_id')->nullable();
             $table->unsignedBigInteger('user_id')->nullable();
             $table->unsignedBigInteger('finapi_user_id');
-            $table->unsignedBigInteger('payment_id')->nullable();
-            $table->unsignedBigInteger('form_id')->nullable();
+            $table->unsignedBigInteger('deposit_id')->nullable();
+            $table->string('order_ref_number', 128)->nullable();
+            $table->enum('purpose', ['ORDER','DEPOSIT'])->default('ORDER');
+            $table->string('currency')->default('EUR');
             $table->unsignedBigInteger('account_id')->nullable();
             $table->string('iban')->nullable();
             $table->unsignedBigInteger('bank_id');
@@ -35,9 +37,8 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('deposit_id')->references('id')->on('deposits')->onDelete('cascade');
             $table->foreign('finapi_user_id')->references('id')->on('finapi_users')->onDelete('cascade');
-            $table->foreign('payment_id')->references('id')->on('payments')->onDelete('cascade');
-            $table->foreign('form_id')->references('id')->on('finapi_forms')->onDelete('cascade');
         });
     }
 

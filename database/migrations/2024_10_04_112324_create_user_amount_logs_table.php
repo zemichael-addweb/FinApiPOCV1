@@ -16,12 +16,12 @@ return new class extends Migration
             $table->unsignedBigInteger('user_id');
             $table->float('amount');
             $table->enum('type', ['DEPOSIT', 'PAYMENT'])->default('DEPOSIT');
-            $table->unsignedBigInteger('payment_id')->nullable();
+            $table->unsignedBigInteger('finapi_payment_id')->nullable();
             $table->string('order_ref_number', 128)->nullable();
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-            $table->foreign('payment_id')->references('id')->on('payments')->onDelete('set null');
+            $table->foreign('finapi_payment_id')->references('id')->on('finapi_payments')->onDelete('set null');
         });
     }
 

@@ -84,4 +84,21 @@ class OrderController extends Controller
     {
         return ShopifyApiServices::refundOrder($request);
     }
+
+    public function getOrders(Request $request)
+    {
+        $financialStatus = $request->financial_status;
+
+        $shopifyOrders = ShopifyApiServices::getShopifyOrders($financialStatus)->getData();
+
+        if(!isset($shopifyOrders->success) || empty($shopifyOrders->data)) {
+             return response()->json(['success' => false, 'message' => 'No orders found']);
+        }
+        return response()->json(['success' => true, 'data' => $shopifyOrders->data]);
+    }
+
+    public function compareOrders(Request $request)
+    {
+       return view('order.order-compare');
+    }
 }

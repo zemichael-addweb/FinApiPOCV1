@@ -27,6 +27,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::resource( '/payments', PaymentController::class);
+Route::get( '/users/get-finapi-user', [AdminController::class, 'getFinapiUser'])->name('users.get-finapi-user');
 
 // Route::prefix('payments')->group(function () {
 //         Route::get( '/create-direct-debit', [PaymentController::class, 'createDirectDebit'])->name('payment.create-direct-debit');
@@ -37,6 +38,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::group(['middleware'=>['auth', 'verified']], function () {
     Route::resource('/profile', ProfileController::class);
     Route::resource( '/deposits', DepositController::class);
+    Route::prefix('deposit')->group(function () {
+        Route::get( '/get-deposit', [DepositController::class, 'getFinapiPayment'] )->name('deposit.getdeposit');
+        Route::post( '/pay-from-deposit', [DepositController::class, 'makePaymentFromDeposit'] )->name('deposit.pay-from-deposit');
+    });
     Route::post('/deposits/redirect-to-deposit-form', [DepositController::class, 'redirectToFinAPIPaymentForm'])->name('shopify.deposit.redirect-to-fin');
 });
 
@@ -44,6 +49,8 @@ Route::middleware(EnsureUserIsAdmin::class)
     ->group(function () {
         Route::resource('/settings/finapi-payment-recipient', FinapiPaymentRecipientController::class);
         Route::resource( '/orders', OrderController::class);
+        Route::get( '/order/compare-orders', [OrderController::class, 'compareOrders'])->name('admin.order.compare-orders');
+        Route::get( '/order/get-orders', [OrderController::class, 'getOrders'])->name('admin.order.get-orders');
         Route::resource( '/bank', BankController::class);
         Route::get( '/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
@@ -51,6 +58,10 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::get( '/settings', [AdminController::class, 'settings'] );
         Route::prefix('payment')->group(function () {
             Route::get( '/get-payment', [PaymentController::class, 'getFinapiPayment'] )->name('admin.payment.getpayment');
+            Route::get( '/get-payments', [PaymentController::class, 'getPayments'] )->name('admin.payment.getpayments');
+        });
+        Route::prefix('deposit')->group(function () {
+            Route::get( '/get-deposit', [DepositController::class, 'getFinapiPayment'] )->name('admin.deposit.getdeposit');
         });
         Route::prefix('bank')->group(function () {
             Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');

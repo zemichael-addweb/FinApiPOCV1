@@ -17,6 +17,7 @@ class Deposit extends Model
     // deposited_at: Timestamp when the deposit was made.
 
     protected $fillable = [
+        'user_id',
         'deposit_id',
         'email',
         'deposit_amount',

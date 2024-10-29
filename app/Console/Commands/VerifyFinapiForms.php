@@ -2,13 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Deposit;
 use App\Models\FinapiForm;
 use App\Models\FinapiPayment;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use App\Models\FinapiUser;
-use App\Models\PaymentForm;
-use App\Models\Payment;
+use App\Services\FinApiLoggerService;
 use App\Services\FinAPIService;
 use Carbon\Carbon;
 use GuzzleHttp\Client;
@@ -34,9 +34,11 @@ class VerifyFinapiForms extends Command
      */
     public function handle()
     {
-        $processedStatuses = [ ];
+        $processedStatuses = ['COMPLETED', 'COMPLETED_WITH_ERROR', 'EXPIRED','ABORTED','CANCELLED'];
+        // $processedStatuses = ['EXPIRED','COMPLETED_WITH_ERROR'];
 
         $loggedForms = FinapiForm::whereNotIn('status', $processedStatuses)
+            ->orWhere('status', null)
             ->get();
 
         if(!$loggedForms  || count($loggedForms) == 0){
@@ -53,7 +55,7 @@ class VerifyFinapiForms extends Command
             }
 
             try{
-                $finApiUserAccessToken = FinAPIService::getAccessToken('user', $finApiUser->username);
+                $finApiUserAccessToken = FinAPIService::getAccessToken('user', $finApiUser->email);
             } catch (\Exception $e) {
                 $this->error('Error while fetching access token. Please check the form_id.', $e);
                 return;
@@ -124,7 +126,7 @@ class VerifyFinapiForms extends Command
     public function verifyPaymentForm($accessToken, $loggedForm){
         // API Call 1 : Get form details
         try{
-            $formDetails = FinAPIService::getFromDetails($accessToken, $loggedForm->form_id);
+            $formDetails = FinAPIService::getFromDetails($accessToken, $loggedForm->finapi_id);
         } catch (\Exception $e) {
             $this->error('Error while fetching access token. Form detail API call failed.');
             \Log::info('er', ['er'=>$e]);
@@ -141,6 +143,7 @@ class VerifyFinapiForms extends Command
         }
 
         $paymentId = $formDetails->payload->paymentId;
+        $formPurpose = $loggedForm->form_purpose;
 
         // API Call 2: Get payment details using the payment ID from the form response
         try{
@@ -158,27 +161,8 @@ class VerifyFinapiForms extends Command
 
         foreach ($paymentDetails->payments as $payment) {
             $finapiUser = $loggedForm->finapiUser;
-            $savedPayment = Payment::where('finapi_user_id', $finapiUser)
-                ->where('order_ref_number', $loggedForm->standing_order_id)
-                ->first();
 
-            if ($savedPayment) {
-                $savedPayment->status = $payment->status;
-                $savedPayment->save();
-            } else {
-                $savedPayment = Payment::create([
-                    'finapi_user_id' => $finapiUser->id,
-                    'order_ref_number' => $loggedForm->standing_order_id,
-                    'amount' => $payment->amount,
-                    'currency' => 'EUR',
-                    'type' => 'ORDER', // schema does not match
-                    'status' => $payment->status
-                ]);
-
-                $savedPayment->save();
-            }
-
-            $finapiPayment = FinapiPayment::where('payment_id', $payment->id)->first();
+            $finapiPayment = FinapiPayment::where('finapi_form_id', $finapiUser->id)->first();
 
             if($finapiPayment) {
                 $finapiPayment->status_v2 = $payment->status_v2;
@@ -187,8 +171,11 @@ class VerifyFinapiForms extends Command
                 $finapiPayment = FinapiPayment::create([
                     'finapi_id' => $payment->id,
                     'finapi_user_id' => $finapiUser->id,
-                    'form_id' => $loggedForm->id,
-                    'payment_id' => $savedPayment->id,
+                    'order_ref_number' => $loggedForm->order_ref_number,
+                    'finapi_form_id' => $loggedForm->id,
+                    'purpose' => $formPurpose == 'PAYMENT' ? 'ORDER' : 'DEPOSIT',
+                    // 'deposit_id' => !
+                    'currency' => 'EUR',
                     'iban' => $payment->iban,
                     'bank_id' => $payment->bankId,
                     'type' => $payment->type,
@@ -208,7 +195,36 @@ class VerifyFinapiForms extends Command
 
             $loggedForm->save();
 
-            $updatedPayments[] = $savedPayment;
+            if($payment->statusV2 != 'SUCCESSFUL'){
+                continue;
+            }
+
+            if($formPurpose == 'DEPOSIT' && auth()->user()){
+                $userDeposit = Deposit::where('user_id', auth()->user()->id)->first();
+                if($userDeposit){
+                    $userDeposit->remaining_balance += $payment->amount;
+                    $userDeposit->save();
+                } else {
+                    $userDeposit = Deposit::create([
+                        'user_id' => auth()->user()->id,
+                        'email' => auth()->user()->email,
+                        'deposited_at' => now(),
+                        'status' => $payment->status,
+                        'remaining_balance' => $payment->amount
+                    ]);
+
+                    $userDeposit->save();
+                }
+
+                FinApiLoggerService::logUserAmount(auth()->user()->id, $payment->amount,'DEPOSIT', $finapiPayment, $loggedForm->order_ref_number);
+
+                $finapiPayment->deposit_id = $userDeposit->id;
+                $finapiPayment->save();
+            } elseif($formPurpose == 'PAYMENT') {
+                FinApiLoggerService::logUserAmount(auth()->user()?->id, $payment->amount,'DEPOSIT', $finapiPayment, $loggedForm->order_ref_number);
+            }
+
+            $updatedPayments[] = $finapiPayment;
         }
 
         $this->info('Updated Payment Details : ' . json_encode($updatedPayments));
@@ -217,7 +233,7 @@ class VerifyFinapiForms extends Command
     }
 
     public function updateFormStatus($loggedForm, $formDetails){
-        $loggedForm->status = $formDetails->status;
+        $loggedForm->status = $formDetails ? $formDetails->status : null;
 
         if(isset($formDetails->payload->errorCode) && isset($formDetails->payload->errorMessage)){
             $loggedForm->error_code = $formDetails->payload->errorCode;

@@ -86,7 +86,8 @@ class BankController extends Controller
         if($finApiStandalonePaymentForm) {
             $formData = [
                 'finapi_user_id' => $finApiUser->id,
-                'form_id' => $finApiStandalonePaymentForm->id,
+                'form_purpose' => 'BANK_CONNECTION',
+                'finapi_form_id' => $finApiStandalonePaymentForm->id,
                 'form_url' => $finApiStandalonePaymentForm->url,
                 'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                 'type' => $finApiStandalonePaymentForm->type,

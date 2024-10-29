@@ -11,11 +11,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('payment_forms', function (Blueprint $table) {
+        Schema::create('finapi_webforms', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->unsignedBigInteger('payment_id');
+            $table->string('finapi_id', 128)->nullable();
             $table->unsignedBigInteger('finapi_user_id');
-            $table->string('form_id', 128)->nullable();
+            $table->unsignedBigInteger('finapi_payment_id')->nullable();
+            $table->string('order_ref_number', 128)->nullable();
+            $table->string('purpose', 128)->nullable();
             $table->string('form_url', 128)->nullable();
             $table->string('expire_time', 128)->nullable();
             $table->string('type', 128)->nullable();
@@ -26,8 +28,13 @@ return new class extends Migration
             $table->string('error_message', 128)->nullable();
             $table->timestamps();
 
-            $table->foreign('payment_id')->references('id')->on('payments')->onDelete('cascade');
             $table->foreign('finapi_user_id')->references('id')->on('finapi_users')->onDelete('cascade');
+            $table->foreign('finapi_payment_id')->references('id')->on('finapi_payments')->onDelete('cascade');
+        });
+
+        Schema::table('finapi_payments', function (Blueprint $table) {
+            $table->unsignedBigInteger('finapi_form_id')->nullable()->after('finapi_user_id');
+            $table->foreign('finapi_form_id')->references('id')->on('finapi_webforms')->onDelete('cascade');
         });
     }
 
@@ -36,6 +43,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('payment_forms');
+        Schema::table('finapi_payments', function (Blueprint $table) {
+            $table->dropForeign(['finapi_form_id']);
+            $table->dropColumn('finapi_form_id');
+        });
+        Schema::dropIfExists('finapi_webforms');
     }
 };

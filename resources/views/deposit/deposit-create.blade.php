@@ -46,6 +46,7 @@
                     errorMessage: '',
                     orderFetched: false,
                     redirectToPayment() {
+                        showLoading();
                         const amount = this.amount
                         const currency = this.currency
 
@@ -67,11 +68,16 @@
                             if (data.url) {
                                 window.location.href = data.url; // Redirect to payment form
                             } else {
-                                this.errorMessage = 'Failed to initiate payment. Please try again.';
+                                this.errorMessage = 'Failed to get payment form. Please try again.';
                             }
+                            hideLoading();
                         })
                         .catch(() => {
                             this.errorMessage = 'Failed to initiate payment. Please try again.';
+                            hideLoading();
+                        })
+                        .finaly(() => {
+                            hideLoading();
                         });
                     }
                 }
