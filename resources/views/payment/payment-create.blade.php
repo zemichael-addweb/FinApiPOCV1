@@ -97,7 +97,7 @@
                         :disabled="loading || !confirmationNumber"
                         class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
                         :class="loading || !confirmationNumber ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
-                        x-text="loading ? 'Fetching...' : 'Get Payment Information'">
+                        x-text="loading ? 'Fetching...' : 'Get Order Information'">
                     </button>
                 </div>
 
@@ -174,6 +174,55 @@
                     <span class="block font-bold text-slate-700 dark:text-slate-100">Total Deposit Amount: <span x-text="totalDeposit"></span></span>
                 </div>
 
+                <div>
+                    <!-- Order ID -->
+                    <div class="my-4">
+                        <label for="confirmation_number" class="block text-sm font-medium text-slate-700 dark:text-slate-100">Order Confirmation Number</label>
+                        <input type="text" name="confirmation_number" id="confirmation_number" x-model="confirmationNumber" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm">
+                    </div>
+
+                    <!-- Button for Payment Info -->
+                    <div class="mt-4 flex gap-4">
+                        <button
+                            @click="getOrderInfo('deposit')"
+                            :disabled="loading || !confirmationNumber"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            :class="loading || !confirmationNumber ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
+                            x-text="loading ? 'Fetching...' : 'Get Order Information'">
+                        </button>
+                        <button
+                            @click="clearOrderInfo('deposit')"
+                            x-show="orderData.id"
+                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer"
+                            x-text="loading ? 'Fetching...' : 'Clear Order Information'">
+                        </button>
+                    </div>
+
+                    <!-- Display Error -->
+                    <div x-show="errorMessage" class="mt-4 text-red-500">
+                        <p><strong>Error:</strong> <span x-text="errorMessage || 'N/A'"></span></p>
+                    </div>
+
+                    <!-- Display Order Information -->
+                    <div class="mt-4" x-show="orderFetched">
+                        <h2 class="text-lg font-bold mb-2">Order Information</h2>
+                        <p><strong>Payment Status:</strong> <span x-text="orderData.displayFinancialStatus || 'N/A'"></span></p>
+                        <p><strong>Order ID:</strong>
+                            <span x-text="orderData.id || 'N/A'"></span>
+                        </p>
+                        <p><strong>Email:</strong>
+                            <span x-text="orderData.email || 'N/A'"></span>
+                        </p>
+                        <p><strong>Total Price:</strong>
+                            <span x-text="orderData.currentTotalPriceSet?.shopMoney?.amount || 'N/A'"></span>
+                            <span x-text="orderData.currentTotalPriceSet?.shopMoney?.currencyCode || ''"></span>
+                        </p>
+                        <p><strong>Transaction Status:</strong>
+                            <span x-text="orderData.transactions?.[0]?.status || 'N/A'"></span>
+                        </p>
+                    </div>
+                </div>
+
                 <!-- Amount Input -->
                 <div class="my-4">
                     <label for="amount" class="block text-sm font-medium text-slate-700 dark:text-slate-100">Amount</label>
@@ -188,9 +237,9 @@
                 <div class="mt-4">
                     <button
                         @click="proceedWithDepositPayment"
-                        :disabled="depositLoading || !depositAmount || !depositCurrency || !email"
+                        :disabled="depositLoading || !depositAmount || !depositCurrency || !email || depositAmount > totalDeposit"
                         class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-                        :class="depositLoading || !depositAmount ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
+                        :class="depositLoading || !depositAmount ||depositAmount > totalDeposit ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
                     >
                         Proceed to Payment
                     </button>
@@ -207,7 +256,7 @@
             function paymentForm() {
                 return {
                     activeTab: 'confirmation',
-                    totalDeposit : 0,
+                    totalDeposit : {{ $deposit ? $deposit->remaining_balance : 0 }},
                     depositAmount : 0,
                     depositCurrency : 'EUR',
                     depositLoading : false,
@@ -255,7 +304,7 @@
                             this.loading = false;
                         });
                     },
-                    getOrderInfo() {
+                    getOrderInfo(type = null) {
                         if ( !this.confirmationNumber) {
                             this.errorMessage = 'Please provide the confirmation number';
                             return;
@@ -307,17 +356,31 @@
                                 }
                                 this.orderData = data.data;
                                 this.orderFetched = true;
+                                if(type == 'deposit') {
+                                  this.depositAmount = parseInt(this.orderData.currentTotalPriceSet?.shopMoney?.amount);
+                                  this.depositCurrency = this.orderData.currentTotalPriceSet?.shopMoney?.currencyCode;
+                                  document.getElementById('deposit-amount').readOnly = true;
+                                }
                             } else {
                                 this.errorMessage = 'Order not found.';
                             }
                         })
-                        .catch(() => {
+                        .catch((e) => {
+                            console.error(e);
                             this.errorMessage = 'Failed to fetch order information. Please try again.';
                         })
                         .finally(() => {
                             hideLoading();
                             this.loading = false;
                         });
+                    },
+                    clearOrderInfo(type = null) {
+                        this.orderData = {};
+                        this.orderFetched = false;
+                        this.errorMessage = '';
+                        if(type == 'deposit') {
+                          document.getElementById('deposit-amount').readOnly = false;
+                        }
                     },
                     proceedToPayment() {
                         const amount = this.orderData.currentTotalPriceSet?.shopMoney?.amount;
@@ -351,6 +414,11 @@
                         this.getPaymentFormAndRedirect(this.manualAmount, this.manualCurrency, this.email, this.confirmationNumber);
                     },
                     proceedWithDepositPayment() {
+                        if (this.depositAmount > this.totalDeposit) {
+                            this.errorMessage = 'Insufficent deposit for payment amount.';
+                            return;
+                        }
+
                         if (!this.depositAmount || !this.depositCurrency) {
                             this.errorMessage = 'Unable to proceed, missing amount or currency.';
                             return;
@@ -378,8 +446,11 @@
                         })
                         .then(response => response.json())
                         .then(data => {
-                            if (data.url) {
-                                window.location.href = data.url; // Redirect to payment form
+                            if (data.success) {
+                                this.totalDeposit = amount - this.depositAmount;
+                                this.depositAmount = 0;
+                                this.clearOrderInfo('deposit');
+                                alert(data.message);
                             } else {
                                 this.errorMessage = 'Failed to initiate payment. Please try again.';
                             }

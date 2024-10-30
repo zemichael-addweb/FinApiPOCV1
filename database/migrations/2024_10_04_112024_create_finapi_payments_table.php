@@ -40,6 +40,11 @@ return new class extends Migration
             $table->foreign('deposit_id')->references('id')->on('deposits')->onDelete('cascade');
             $table->foreign('finapi_user_id')->references('id')->on('finapi_users')->onDelete('cascade');
         });
+
+        Schema::table('deposits', function (Blueprint $table) {
+            $table->unsignedBigInteger('finapi_payment_id')->nullable()->after('user_id');
+            $table->foreign('finapi_payment_id')->references('id')->on('finapi_payments')->onDelete('set null');
+        });
     }
 
     /**
@@ -48,5 +53,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('finapi_payments');
+
+        Schema::table('deposits', function (Blueprint $table) {
+            $table->dropForeign(['finapi_payment_id']);
+            $table->dropColumn('finapi_payment_id');
+        });
     }
 };

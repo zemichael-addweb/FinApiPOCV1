@@ -39,7 +39,7 @@ Route::group(['middleware'=>['auth', 'verified']], function () {
     Route::resource('/profile', ProfileController::class);
     Route::resource( '/deposits', DepositController::class);
     Route::prefix('deposit')->group(function () {
-        Route::get( '/get-deposit', [DepositController::class, 'getFinapiPayment'] )->name('deposit.getdeposit');
+        Route::get( '/get-deposit', [DepositController::class, 'getDeposit'] )->name('deposit.getdeposit');
         Route::post( '/pay-from-deposit', [DepositController::class, 'makePaymentFromDeposit'] )->name('deposit.pay-from-deposit');
     });
     Route::post('/deposits/redirect-to-deposit-form', [DepositController::class, 'redirectToFinAPIPaymentForm'])->name('shopify.deposit.redirect-to-fin');
@@ -57,11 +57,12 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
         Route::get( '/settings', [AdminController::class, 'settings'] );
         Route::prefix('payment')->group(function () {
-            Route::get( '/get-payment', [PaymentController::class, 'getFinapiPayment'] )->name('admin.payment.getpayment');
+            Route::get( '/get-finapi-payment', [PaymentController::class, 'getFinapiPayment'] )->name('admin.payment.get-finapi-payment');
+            Route::get( '/get-payment', [PaymentController::class, 'getPayment'] )->name('admin.payment.getpayment');
             Route::get( '/get-payments', [PaymentController::class, 'getPayments'] )->name('admin.payment.getpayments');
         });
         Route::prefix('deposit')->group(function () {
-            Route::get( '/get-deposit', [DepositController::class, 'getFinapiPayment'] )->name('admin.deposit.getdeposit');
+            Route::get( '/admin-get-deposit', [DepositController::class, 'getDeposits'] )->name('admin.deposit.getdeposit');
         });
         Route::prefix('bank')->group(function () {
             Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');

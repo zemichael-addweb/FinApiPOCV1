@@ -8,7 +8,7 @@ use GuzzleHttp\Client;
 use stdClass;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Services\FinApiLoggerService;
+use App\Services\LoggerService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -69,7 +69,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $formParams, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $formParams, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -100,7 +100,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $userDetails, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $userDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -214,7 +214,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -241,7 +241,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -267,7 +267,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['finapi_form_id',$formId], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['finapi_form_id',$formId], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -294,14 +294,14 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['ids' => $paymentId], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['ids' => $paymentId], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             $fetchedPayments = json_decode($responseBody);
             if (isset($fetchedPayments->payments) && count($fetchedPayments->payments) > 0) {
                 self::updateFinapiPaymentDetail($fetchedPayments->payments);
             }
-            return json_decode($responseBody);
+            return $fetchedPayments;
         }
 
         dump('No or invalid payment!');
@@ -310,11 +310,11 @@ class FinAPIService {
 
     public static function updateFinapiPaymentDetail($fetchedPayments){
         foreach ($fetchedPayments as $fetchedPayment) {
-            $finApiPayment = FinapiPayment::where('payment_id', $fetchedPayment->id)->first();
+            $finApiPayment = FinapiPayment::where('finapi_id', $fetchedPayment->id)->first();
             if ($finApiPayment) {
-                    $finApiPayment->status = $fetchedPayment->status;
-                    $finApiPayment->status_v2 = $fetchedPayment->statusV2;
-                    $finApiPayment->save();
+                $finApiPayment->status = $fetchedPayment->status;
+                $finApiPayment->status_v2 = $fetchedPayment->statusV2;
+                $finApiPayment->save();
             }
         }
     }
@@ -401,7 +401,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' => $requestId], ['body' => $body], $responseCode, $responseBody,$requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' => $requestId], ['body' => $body], $responseCode, $responseBody,$requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -494,7 +494,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $data], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $data], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -581,7 +581,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $bankConnectionDetails], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $bankConnectionDetails], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -663,7 +663,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -770,7 +770,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -803,7 +803,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> ['id' => $id]], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> ['id' => $id]], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -832,7 +832,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);

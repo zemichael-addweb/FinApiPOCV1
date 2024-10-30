@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('finapi_webforms', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->string('finapi_id', 128)->nullable();
-            $table->unsignedBigInteger('finapi_user_id');
+            $table->unsignedBigInteger('finapi_user_id')->nullable();;
             $table->unsignedBigInteger('finapi_payment_id')->nullable();
             $table->string('order_ref_number', 128)->nullable();
             $table->string('purpose', 128)->nullable();
@@ -28,13 +28,13 @@ return new class extends Migration
             $table->string('error_message', 128)->nullable();
             $table->timestamps();
 
-            $table->foreign('finapi_user_id')->references('id')->on('finapi_users')->onDelete('cascade');
-            $table->foreign('finapi_payment_id')->references('id')->on('finapi_payments')->onDelete('cascade');
+            $table->foreign('finapi_user_id')->references('id')->on('finapi_users')->onDelete('set null');
+            $table->foreign('finapi_payment_id')->references('id')->on('finapi_payments')->onDelete('set null');
         });
 
         Schema::table('finapi_payments', function (Blueprint $table) {
             $table->unsignedBigInteger('finapi_form_id')->nullable()->after('finapi_user_id');
-            $table->foreign('finapi_form_id')->references('id')->on('finapi_webforms')->onDelete('cascade');
+            $table->foreign('finapi_form_id')->references('id')->on('finapi_webforms')->onDelete('set null');
         });
     }
 

@@ -1,9 +1,19 @@
 
 <x-app-layout>
     <x-slot name="header">
-        {{ __('Make Deposit') }}
+        <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
+            <!-- back button to go back to /bank -->
+            <a
+                href="{{ route('deposits.index') }}"
+                class="rounded-md px-3 py-2 border text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
+            > <i class="fa-solid fa-circle-left mx-2"></i>
+                Back to Deposits
+            </a>
+            <span class="mx-4 float-right">
+                {{ __('Make Deposit') }}
+            </span>
+        </h2>
     </x-slot>
-
     <x-slot name="slot">
         <div class="container mx-auto p-4" x-data="paymentForm()">
             <h1 class="text-2xl font-bold mb-4">Make a Deposit</h1>

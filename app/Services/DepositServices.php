@@ -3,36 +3,95 @@
 namespace App\Services;
 
 use App\Models\Deposit;
-use Illuminate\Http\Request;
+use App\Models\User;
+use App\Models\DepositTransaction;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
-
-class DepositServices {
-
+class DepositServices
+{
     public function __construct()
     {
         //
     }
 
-    public static function getUserDeposit()
+    private static function getUser($userId = null)
     {
-        return Deposit::where('user_id', auth()->user()->id)->first();
+        if ($userId) {
+            return User::find($userId);
+        }
+        return Auth::user();
     }
 
-    public static function addDeposit($amount)
+    public static function getUserDeposit($userId = null)
     {
-        $deposit = Deposit::where('user_id', auth()->user()->id)->first();
-        if($deposit){
-            $deposit->deposit_amount += $amount;
-            $deposit->save();
-        }
+        $user = self::getUser($userId);
+        return $user ? Deposit::where('user_id', $user->id)->first() : null;
     }
 
-    public static function withdrawDeposit($amount)
+    public static function makeDeposit($amount, $userId = null, $finapiPaymentId = null)
     {
-        $deposit = Deposit::where('user_id', auth()->user()->id)->first();
-        if($deposit){
-            $deposit->deposit_amount -= $amount;
-            $deposit->save();
+        $user = self::getUser($userId);
+        if ($user) {
+            return DB::transaction(function () use ($user, $amount, $finapiPaymentId) {
+                $deposit = Deposit::firstOrCreate(
+                    ['user_id' => $user->id],
+                    ['remaining_balance' => 0.00]
+                );
+
+                $deposit->remaining_balance += $amount;
+                $deposit->save();
+
+                // Log transaction
+                $transaction = DepositTransaction::create([
+                    'deposit_id' => $deposit->id,
+                    'user_id' => $user->id,
+                    'amount' => $amount,
+                    'transaction_type' => 'DEPOSIT',
+                    'status' => 'SUCCESS',
+                    'transaction_id' => $finapiPaymentId,
+                    'currency' => 'EUR',
+                    'transaction_date' => now(),
+                ]);
+
+                LoggerService::logUserAmount($user->id, $amount, 'DEPOSIT', $finapiPaymentId);
+
+                return $transaction;
+            });
         }
+        return null;
+    }
+
+    public static function withdrawDeposit($amount, $userId = null, $finapiPaymentId = null)
+    {
+        $user = self::getUser($userId);
+        if ($user) {
+            return DB::transaction(function () use ($user, $amount, $finapiPaymentId) {
+                $deposit = Deposit::where('user_id', $user->id)->first();
+
+                if ($deposit && $deposit->remaining_balance >= $amount) {
+                    $deposit->remaining_balance -= $amount;
+                    $deposit->save();
+
+                    // Log transaction
+                    $transaction = DepositTransaction::create([
+                        'deposit_id' => $deposit->id,
+                        'user_id' => $user->id,
+                        'amount' => $amount,
+                        'transaction_type' => 'WITHDRAWAL',
+                        'status' => 'SUCCESS',
+                        'transaction_id' => $finapiPaymentId,
+                        'currency' => 'EUR',
+                        'transaction_date' => now(),
+                    ]);
+
+                    LoggerService::logUserAmount($user->id, $amount, 'DEPOSIT', $finapiPaymentId);
+
+                    return $transaction;
+                }
+                return null;
+            });
+        }
+        return null;
     }
 }

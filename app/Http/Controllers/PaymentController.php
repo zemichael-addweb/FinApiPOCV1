@@ -2,21 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FinAPIAccessToken;
+use App\Models\Deposit;
 use App\Models\FinapiPayment;
-use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Services\FinApiLoggerService;
+use App\Services\LoggerService;
 use App\Services\FinAPIService;
-use App\Services\OpenApiEnumModelService;
 use Exception;
-use FinAPI\Client\Api\PaymentsApi;
-use FinAPI\Client\Configuration;
-use FinAPI\Client\Model\CreateMoneyTransferParams;
-use FinAPI\Client\Model\Currency;
-use FinAPI\Client\Model\ISO3166Alpha2Codes;
-use FinAPI\Client\Model\MoneyTransferOrderParams;
-use FinAPI\Client\Model\MoneyTransferOrderParamsCounterpartAddress;
 use GuzzleHttp\Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,8 +44,9 @@ class PaymentController extends Controller
 
     public function create()
     {
+        $deposit = auth()->user() ? Deposit::where('user_id', auth()->user()->id)->first(): null;
         $pageTitle = 'create-payment';
-        return view('payment.payment-create',  ['pageTitle'=>$pageTitle]);
+        return view('payment.payment-create',  ['pageTitle'=>$pageTitle, 'deposit'=>$deposit]);
     }
     public function createDirectDebit()
     {
@@ -93,6 +85,18 @@ class PaymentController extends Controller
 
     public function getPayments()
     {
+        $payments = FinapiPayment::with('user','finapiUser','form')->get();
+
+        return response()->json($payments);
+    }
+
+    public function getPayment(Request $request)
+    {
+        $id = $request->id;
+        if($id) {
+            $payment = FinapiPayment::with('user','finapiUser','form')->where('finapi_id', $id)->first();
+            return response()->json($payment);
+        }
         $payments = FinapiPayment::with('user','finapiUser','form')->get();
 
         return response()->json($payments);
@@ -208,7 +212,7 @@ class PaymentController extends Controller
                 'error_code' => isset($finApiStandalonePaymentForm->payload->errorCode) ? $finApiStandalonePaymentForm->payload->errorCode : null,
                 'error_message' => isset($finApiStandalonePaymentForm->payload->errorMessage) ? $finApiStandalonePaymentForm->payload->errorCode : null,
             ];
-            FinApiLoggerService::logFinapiForm($formData);
+            LoggerService::logFinapiForm($formData);
 
             return response()->json($finApiStandalonePaymentForm);
         }

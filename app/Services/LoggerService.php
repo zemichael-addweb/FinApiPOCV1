@@ -8,7 +8,7 @@ use App\Models\PaymentForm;
 use App\Models\FinapiRequest;
 use App\Models\FinapiUser;
 
-class FinApiLoggerService
+class LoggerService
 {
     public static function logUserAmount($userId, $amount, $type, $paymentId = null, $orderRefNumber = null)
     {
@@ -16,7 +16,7 @@ class FinApiLoggerService
             'user_id' => $userId,
             'amount' => $amount,
             'type' => $type,
-            'payment_id' => $paymentId,
+            'finapi_payment_id' => $paymentId,
             'order_ref_number' => $orderRefNumber,
         ]);
     }

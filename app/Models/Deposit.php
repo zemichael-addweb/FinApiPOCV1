@@ -9,21 +9,11 @@ class Deposit extends Model
 {
     use HasFactory;
 
-    // deposit_id: Unique ID for the deposit.
-    // email: Customer’s email to link the deposit.
-    // deposit_amount: The amount deposited by the customer.
-    // remaining_balance: The amount left to be applied to future orders.
-    // status: Current status of the deposit (available, used, refunded).
-    // deposited_at: Timestamp when the deposit was made.
-
     protected $fillable = [
         'user_id',
-        'deposit_id',
-        'email',
-        'deposit_amount',
+        'finapi_payment_id',
         'remaining_balance',
         'status',
-        'deposited_at'
     ];
 
     public function getDeposits()

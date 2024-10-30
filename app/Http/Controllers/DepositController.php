@@ -3,12 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Deposit;
+use App\Models\DepositTransaction;
 use Illuminate\Http\Request;
-use App\Models\FinAPIAccessToken;
+use App\Models\User;
 use App\Models\FinapiPayment;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Services\FinApiLoggerService;
+use App\Services\DepositServices;
+use App\Services\LoggerService;
 use App\Services\FinAPIService;
 use App\Services\OpenApiEnumModelService;
 use Exception;
@@ -30,15 +32,33 @@ class DepositController extends Controller
     // resource controller
     public function index()
     {
-        $finapiDeposits = FinapiPayment::where('purpose', 'DEPOSIT')
-        ->get()->map(function ($payment) {
-            return collect($payment)->mapWithKeys(function ($value, $key) {
-                return [Str::camel($key) => $value];
-            });
-        });
-
         $pageTitle = 'view-deposits';
-        return view('deposit.deposit-index', compact('finapiDeposits', 'pageTitle'));
+
+        $user = User::where('id', auth()->user()->id)->first();
+
+        if($user->role == 'admin'){
+            $finapiDeposits = FinapiPayment::where('purpose', 'DEPOSIT')
+            ->get()->map(function ($payment) {
+                return collect($payment)->mapWithKeys(function ($value, $key) {
+                    return [Str::camel($key) => $value];
+                });
+            });
+            $deposits = Deposit::all();
+            $depositTrsansactions = $deposits && count($deposits) > 0 ? DepositTransaction::all() : null;
+
+            return view('admin.deposit.deposit-index', compact('finapiDeposits','deposits','depositTrsansactions', 'pageTitle'));
+        } else {
+            $finapiDeposits = FinapiPayment::where('purpose', 'DEPOSIT')->where('user_id', $user->id)
+            ->get()->map(function ($payment) {
+                return collect($payment)->mapWithKeys(function ($value, $key) {
+                    return [Str::camel($key) => $value];
+                });
+            });
+            $deposit = Deposit::where('user_id', $user->id)->first();
+            $depositTrsansactions = $deposit ? DepositTransaction::where('deposit_id', $deposit->id)->get(): null;
+
+            return view('deposit.deposit-index', compact('finapiDeposits','deposit','depositTrsansactions', 'pageTitle'));
+        }
     }
 
     public function create()
@@ -104,15 +124,32 @@ class DepositController extends Controller
             $formData = [
                 'finapi_user_id' => $finApiUserDetails->id,
                 'purpose' => 'DEPOSIT',
-                'finapi_form_id' => $finApiStandalonePaymentForm->id,
+                'finapi_id' => $finApiStandalonePaymentForm->id,
                 'form_url' => $finApiStandalonePaymentForm->url,
                 'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                 'type' => $finApiStandalonePaymentForm->type,
             ];
-            FinApiLoggerService::logFinapiForm($formData);
+            LoggerService::logFinapiForm($formData);
 
             return response()->json($finApiStandalonePaymentForm);
         }
+    }
+
+    public function getDeposit(Request $request){
+        $id = $request->input('id');
+        $deposit = $id ? Deposit::where('id', $id)->first() : Deposit::where('user_id', auth()->user()->id)->first();
+        return response()->json($deposit);
+    }
+
+    public function getDeposits(Request $request){
+        $id = $request->input('id');
+        if($id) {
+            $deposit = Deposit::where('user_id', $id)->first();
+            return response()->json($deposit);
+        }
+
+        $deposits = Deposit::all();
+        return response()->json($deposits);
     }
 
     public function makePaymentFromDeposit(Request $request){
@@ -122,7 +159,7 @@ class DepositController extends Controller
 
         $user = auth()->user();
 
-        $userDeposit = Deposit::where('user_id', auth()->user()->id)->first();
+        $userDeposit = Deposit::where('user_id', $user->id)->first();
 
         if(!$userDeposit) {
             return response()->json(['success' => false,'error' => 'No deposits found'], 400);
@@ -132,21 +169,8 @@ class DepositController extends Controller
             return response()->json(['success' => false,'error' => 'Insufficient balance'], 400);
         }
 
-        if($userDeposit){
-            $userDeposit->remaining_balance += $amount;
-            $userDeposit->save();
-        } else {
-            $userDeposit = Deposit::create([
-                'user_id' => auth()->user()->id,
-                'email' => auth()->user()->email,
-                'deposited_at' => now(),
-                'status' => 'DEPOSITED',
-                'remaining_balance' => $amount
-            ]);
+        $userDeposit = DepositServices::withdrawDeposit($amount, $user->id);
 
-            $userDeposit->save();
-        }
-
-        FinApiLoggerService::logUserAmount(auth()->user()->id, $amount, 'DEPOSIT');
+        return response()->json(['success' => true, 'message' => 'Payment successful']);
     }
 }

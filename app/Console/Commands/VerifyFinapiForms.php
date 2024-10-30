@@ -8,10 +8,10 @@ use App\Models\FinapiPayment;
 use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use App\Models\FinapiUser;
-use App\Services\FinApiLoggerService;
+use App\Models\User;
+use App\Services\DepositServices;
+use App\Services\LoggerService;
 use App\Services\FinAPIService;
-use Carbon\Carbon;
-use GuzzleHttp\Client;
 
 class VerifyFinapiForms extends Command
 {
@@ -35,7 +35,6 @@ class VerifyFinapiForms extends Command
     public function handle()
     {
         $processedStatuses = ['COMPLETED', 'COMPLETED_WITH_ERROR', 'EXPIRED','ABORTED','CANCELLED'];
-        // $processedStatuses = ['EXPIRED','COMPLETED_WITH_ERROR'];
 
         $loggedForms = FinapiForm::whereNotIn('status', $processedStatuses)
             ->orWhere('status', null)
@@ -47,6 +46,11 @@ class VerifyFinapiForms extends Command
         }
 
         foreach($loggedForms as $loggedForm) {
+            $formType = $loggedForm->type;
+
+            $this->info('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+            $this->info('Verifying form of type "' . $formType . '" for "'. $loggedForm->purpose . '" ID "'. $loggedForm->finapi_id .'"');
+
             $finApiUser = $loggedForm->finapiUser;
 
             if(!$finApiUser){
@@ -67,8 +71,6 @@ class VerifyFinapiForms extends Command
                 $this->error('FinApi user access token not found. Please check the form_id.');
                 return;
             }
-
-            $formType = $loggedForm->type;
 
             switch($formType){
                 case 'BANK_CONNECTION_IMPORT':
@@ -133,9 +135,9 @@ class VerifyFinapiForms extends Command
             return;
         }
 
-        $updatedPayments = [];
+        $this->info('Fetched form details : ' . json_encode($formDetails));
 
-        $this->updateFormStatus($loggedForm, $formDetails);
+        $updatedPayments = [];
 
         if (!isset($formDetails->payload->paymentId)) {
             $this->error('No Payment Found. Please make sure you pay using this url : ' . $formDetails->url);
@@ -143,8 +145,9 @@ class VerifyFinapiForms extends Command
         }
 
         $paymentId = $formDetails->payload->paymentId;
-        $formPurpose = $loggedForm->form_purpose;
+        $formPurpose = $loggedForm->purpose;
 
+        sleep(5);
         // API Call 2: Get payment details using the payment ID from the form response
         try{
             $paymentDetails = FinAPIService::getPaymentDetails($accessToken, $paymentId);
@@ -161,15 +164,18 @@ class VerifyFinapiForms extends Command
 
         foreach ($paymentDetails->payments as $payment) {
             $finapiUser = $loggedForm->finapiUser;
+            $user = User::where('id', $finapiUser->user_id)->first();
 
-            $finapiPayment = FinapiPayment::where('finapi_form_id', $finapiUser->id)->first();
+            $finapiPayment = FinapiPayment::where('finapi_form_id', $loggedForm->id)->first();
 
             if($finapiPayment) {
-                $finapiPayment->status_v2 = $payment->status_v2;
+                $finapiPayment->status = $payment->status;
+                $finapiPayment->status_v2 = $payment->statusV2;
                 $finapiPayment->save();
             } else {
                 $finapiPayment = FinapiPayment::create([
                     'finapi_id' => $payment->id,
+                    'user_id' => $user ? $user->id : null,
                     'finapi_user_id' => $finapiUser->id,
                     'order_ref_number' => $loggedForm->order_ref_number,
                     'finapi_form_id' => $loggedForm->id,
@@ -199,33 +205,35 @@ class VerifyFinapiForms extends Command
                 continue;
             }
 
-            if($formPurpose == 'DEPOSIT' && auth()->user()){
-                $userDeposit = Deposit::where('user_id', auth()->user()->id)->first();
-                if($userDeposit){
-                    $userDeposit->remaining_balance += $payment->amount;
-                    $userDeposit->save();
-                } else {
+            if($formPurpose == 'DEPOSIT'){
+                if(!$user){
+                    $this->error('User not found.');
+                    continue;
+                }
+                $userDeposit = DepositServices::makeDeposit($payment->amount, $user->id, $finapiPayment->id);
+                if(!$userDeposit){
                     $userDeposit = Deposit::create([
-                        'user_id' => auth()->user()->id,
-                        'email' => auth()->user()->email,
-                        'deposited_at' => now(),
-                        'status' => $payment->status,
+                        'user_id' => $user->id,
+                        'finapi_payment_id' => $finapiPayment->id,
+                        'status' => 'DEPOSITED',
                         'remaining_balance' => $payment->amount
                     ]);
 
                     $userDeposit->save();
                 }
 
-                FinApiLoggerService::logUserAmount(auth()->user()->id, $payment->amount,'DEPOSIT', $finapiPayment, $loggedForm->order_ref_number);
+                LoggerService::logUserAmount($user->id, $payment->amount,'DEPOSIT', $finapiPayment, $loggedForm->order_ref_number);
 
                 $finapiPayment->deposit_id = $userDeposit->id;
                 $finapiPayment->save();
             } elseif($formPurpose == 'PAYMENT') {
-                FinApiLoggerService::logUserAmount(auth()->user()?->id, $payment->amount,'DEPOSIT', $finapiPayment, $loggedForm->order_ref_number);
+                LoggerService::logUserAmount($user ? $user->id : 1, $payment->amount,'PAYMENT', $finapiPayment, $loggedForm->order_ref_number);
             }
 
             $updatedPayments[] = $finapiPayment;
         }
+
+        $this->updateFormStatus($loggedForm, $formDetails);
 
         $this->info('Updated Payment Details : ' . json_encode($updatedPayments));
         $this->info('Done verifying payment details!');
