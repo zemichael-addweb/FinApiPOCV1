@@ -31,6 +31,15 @@
         </div>
         <hr>
 
+        @if(!$bankConnections || !$transactions)
+            <div class="flex flex-1 justify-center items-center h-96">
+                <div class="text-center">
+                    <h2 class="text-2xl font-semibold text-slate-800 dark:text-slate-200">No Transactions Found or Failed to fetch</h2>
+                    <p class="text-lg text-slate-600 dark:text-slate-400">Please import a bank connection to view transactions or contact system admin.</p>
+                </div>
+            </div>
+        @endif
+
         <!-- Table with Filter -->
         <div class="my-4 w-full text-nowrap"  x-data="transactionData()">
             <!-- Filters Form -->

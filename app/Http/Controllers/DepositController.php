@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Deposit;
+use App\Models\DepositTransaction;
 use Illuminate\Http\Request;
-use App\Models\FinAPIAccessToken;
+use App\Models\User;
+use App\Models\FinapiPayment;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Models\Payment;
-use App\Services\FinApiLoggerService;
+use App\Services\DepositServices;
+use App\Services\LoggerService;
 use App\Services\FinAPIService;
 use App\Services\OpenApiEnumModelService;
 use Exception;
@@ -29,8 +32,33 @@ class DepositController extends Controller
     // resource controller
     public function index()
     {
-        // TODO get all deposits of this user and display them
-        return view('deposit.deposit-index');
+        $pageTitle = 'view-deposits';
+
+        $user = User::where('id', auth()->user()->id)->first();
+
+        if($user->role == 'admin'){
+            $finapiDeposits = FinapiPayment::where('purpose', 'DEPOSIT')
+            ->get()->map(function ($payment) {
+                return collect($payment)->mapWithKeys(function ($value, $key) {
+                    return [Str::camel($key) => $value];
+                });
+            });
+            $deposits = Deposit::all();
+            $depositTrsansactions = $deposits && count($deposits) > 0 ? DepositTransaction::all() : null;
+
+            return view('admin.deposit.deposit-index', compact('finapiDeposits','deposits','depositTrsansactions', 'pageTitle'));
+        } else {
+            $finapiDeposits = FinapiPayment::where('purpose', 'DEPOSIT')->where('user_id', $user->id)
+            ->get()->map(function ($payment) {
+                return collect($payment)->mapWithKeys(function ($value, $key) {
+                    return [Str::camel($key) => $value];
+                });
+            });
+            $deposit = Deposit::where('user_id', $user->id)->first();
+            $depositTrsansactions = $deposit ? DepositTransaction::where('deposit_id', $deposit->id)->get(): null;
+
+            return view('deposit.deposit-index', compact('finapiDeposits','deposit','depositTrsansactions', 'pageTitle'));
+        }
     }
 
     public function create()
@@ -69,90 +97,80 @@ class DepositController extends Controller
 
         $user = auth()->user();
 
-        $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
-
-        if ($accessToken) {
-            // get finApiUser
-            $finApiUser = FinapiUser::where('user_id', $user->id)->first();
-
-            if($finApiUser) {
-                $userDetails = [
-                    'id' => $finApiUser->id,
-                    'password' => $finApiUser->password,
-                    'email' => $finApiUser->email,
-                    'phone' => '+49 99 999999-999',
-                    'isAutoUpdateEnabled' => true
-                ];
-
-
-            } else {
-                $userDetails = [
-                    'id' => Str::random(),
-                    'password' => 'hellopassword',
-                    'email' => 'email@localhost.de',
-                    'phone' => '+49 99 999999-999',
-                    'isAutoUpdateEnabled' => true
-                ];
-
-                $finApiUser = FinAPIService::createFinApiUser($accessToken->access_token, $userDetails);
-
-                // {"id":"lOCOne5IisOKWzUN","password":"hellopassword","email":"email@localhost.de","phone":"+49 99 999999-999","isAutoUpdateEnabled":true}
-
-                $finApiUserDetails = new FinapiUser([
-                    'user_id' => auth()->user() ? auth()->user()->id : null,
-                    'username' => auth()->user() ? auth()->user()->name : 'NO_USERNAME', // !
-                    'password' => $finApiUser->password,
-                    'email' => $finApiUser->email,
-                ]);
-            }
-
-            if ($finApiUser) {
-
-                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->id, $finApiUser->password);
-
-                if ($finApiUserAccessToken) {
-                    // {"access_token":"k3mvEvxNC4GYTzrtBU7KZE2o3uj2d05jOWkc8CfvOW9mZlG8ZUAR8RM8TahbaXRxUhASV4R0gHkmj8ApLA8RgiZkAG1GHMYgV9FIY9MrUaX3G2OgwCdnRZGpZtdF9Oc2","token_type":"bearer","refresh_token":"9Ld_45TcIOcx3w1oJjdRcqenRn_spharcIF2lPu8E8KEZuUIac69SaHC8YXdUwfcxtV2CFaAGbbgknpmvkWL6sC6ltA2dxeukNhLex4HcBMalSkXclWFO_Rfb0Xym0Ok","expires_in":3599,"scope":"all"}
-
-                    $finApiUserDetails->access_token = $finApiUserAccessToken->access_token;
-                    $finApiUserDetails->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
-                    $finApiUserDetails->refresh_token = $finApiUserAccessToken->refresh_token;
-
-                    $finApiUserDetails->save();
-
-                    $payment = new Payment([
-                        'finapi_user_id' => $finApiUserDetails->id,
-                        'order_ref_number' => '123456', // TODO get this from shopify
-                        'amount' => $amount,
-                        'currency' => $currency,
-                        'type' => 'ORDER', // TODO and this
-                        'status' => 'PENDING',
-                    ]);
-
-                    $payment->save();
-
-                    $paymentDetails = FinAPIService::buildPaymentDetails(
-                        $payment->amount,
-                        $payment->currency
-                    );
-
-                    $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
-
-                    // dump($finApiStandalonePaymentForm);
-                    // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
-
-                    if($finApiStandalonePaymentForm) {
-                        $formData = [
-                            'form_id' => $finApiStandalonePaymentForm->id,
-                            'form_url' => $finApiStandalonePaymentForm->url,
-                            'expire_time' => $finApiStandalonePaymentForm->expiresAt,
-                            'type' => $finApiStandalonePaymentForm->type,
-                        ];
-                        FinApiLoggerService::logFinapiForm($formData, $payment->id);
-
-                        return response()->json($finApiStandalonePaymentForm);
-                    }
-                }
-            }
+        try{
+            $finApiUserAccessToken = FinAPIService::getAccessToken('user', $user->email);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+            return;
         }
+
+        if(isset($finApiUserAccessToken->access_token)){
+            $accessToken = $finApiUserAccessToken->access_token;
+        } else {
+            return response()->json(['error' => $e->getMessage()], 500);
+            return;
+        }
+
+        $finApiUserDetails = FinapiUser::where('access_token', $accessToken)->first();
+
+        $paymentDetails = FinAPIService::buildPaymentDetails(
+            $amount,
+            $currency
+        );
+
+        $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
+
+        if($finApiStandalonePaymentForm) {
+            $formData = [
+                'finapi_user_id' => $finApiUserDetails->id,
+                'purpose' => 'DEPOSIT',
+                'finapi_id' => $finApiStandalonePaymentForm->id,
+                'form_url' => $finApiStandalonePaymentForm->url,
+                'expire_time' => $finApiStandalonePaymentForm->expiresAt,
+                'type' => $finApiStandalonePaymentForm->type,
+            ];
+            LoggerService::logFinapiForm($formData);
+
+            return response()->json($finApiStandalonePaymentForm);
+        }
+    }
+
+    public function getDeposit(Request $request){
+        $id = $request->input('id');
+        $deposit = $id ? Deposit::where('id', $id)->first() : Deposit::where('user_id', auth()->user()->id)->first();
+        return response()->json($deposit);
+    }
+
+    public function getDeposits(Request $request){
+        $id = $request->input('id');
+        if($id) {
+            $deposit = Deposit::where('user_id', $id)->first();
+            return response()->json($deposit);
+        }
+
+        $deposits = Deposit::all();
+        return response()->json($deposits);
+    }
+
+    public function makePaymentFromDeposit(Request $request){
+        $amount = $request->input('amount');
+        $currency = $request->input('currency');
+        $emil = $request->input('email');
+
+        $user = auth()->user();
+
+        $userDeposit = Deposit::where('user_id', $user->id)->first();
+
+        if(!$userDeposit) {
+            return response()->json(['success' => false,'error' => 'No deposits found'], 400);
+        }
+
+        if($userDeposit->remaining_balance < $amount) {
+            return response()->json(['success' => false,'error' => 'Insufficient balance'], 400);
+        }
+
+        $userDeposit = DepositServices::withdrawDeposit($amount, $user->id);
+
+        return response()->json(['success' => true, 'message' => 'Payment successful']);
     }
 }

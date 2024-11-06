@@ -30,11 +30,6 @@ class Order extends Model
         return $this->find($id);
     }
 
-    public function payments()
-    {
-        return $this->hasMany(Payment::class);
-    }
-
     public function createOrder($data)
     {
         return $this->create($data);

@@ -53,4 +53,8 @@ class User extends Authenticatable
     protected function is_admin(): bool {
         return $this->role === 'admin';
     }
+
+    public function deposit() {
+        return $this->hasOne(Deposit::class);
+    }
 }

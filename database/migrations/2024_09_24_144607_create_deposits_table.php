@@ -13,13 +13,9 @@ return new class extends Migration
     {
         Schema::create('deposits', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->nullable()->constrained()->noActionOnDelete();
-            $table->string('deposit_id')->unique();
-            $table->string('email');
-            $table->decimal('deposit_amount', 10, 2);
+            $table->foreignId('user_id')->constrained()->noActionOnDelete();
             $table->decimal('remaining_balance', 10, 2);
-            $table->string('status');
-            $table->timestamp('deposited_at');
+            $table->string('status', ['PENDING', 'DEPOSITED', 'FAILED'])->default('PENDING');
             $table->timestamps();
         });
     }

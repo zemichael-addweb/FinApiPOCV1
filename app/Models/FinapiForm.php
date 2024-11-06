@@ -6,12 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class FinapiForm extends Model
 {
-    protected $table = 'finapi_forms';
+    protected $table = 'finapi_webforms';
 
     protected $fillable = [
+        'finapi_id',
         'payment_id',
         'finapi_user_id',
-        'form_id',
+        'finapi_payment_id',
+        'order_ref_number',
         'form_url',
         'expire_time',
         'type',
@@ -22,10 +24,6 @@ class FinapiForm extends Model
         'error_message',
     ];
 
-    public function payment()
-    {
-        return $this->belongsTo(Payment::class);
-    }
     public function finapiUser()
     {
         return $this->belongsTo(FinapiUser::class, 'finapi_user_id', 'id');

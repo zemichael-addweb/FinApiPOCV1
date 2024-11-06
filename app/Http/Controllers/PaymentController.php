@@ -2,21 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\FinAPIAccessToken;
-use App\Models\FinapiPaymentRecipient;
+use App\Models\Deposit;
+use App\Models\FinapiPayment;
 use App\Models\FinapiUser;
-use App\Models\Payment;
-use App\Services\FinApiLoggerService;
+use App\Services\LoggerService;
 use App\Services\FinAPIService;
-use App\Services\OpenApiEnumModelService;
 use Exception;
-use FinAPI\Client\Api\PaymentsApi;
-use FinAPI\Client\Configuration;
-use FinAPI\Client\Model\CreateMoneyTransferParams;
-use FinAPI\Client\Model\Currency;
-use FinAPI\Client\Model\ISO3166Alpha2Codes;
-use FinAPI\Client\Model\MoneyTransferOrderParams;
-use FinAPI\Client\Model\MoneyTransferOrderParamsCounterpartAddress;
 use GuzzleHttp\Client;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -41,14 +32,21 @@ class PaymentController extends Controller
     // resource controller
     public function index()
     {
+        $finapiPayments = FinapiPayment::all()->map(function ($payment) {
+            return collect($payment)->mapWithKeys(function ($value, $key) {
+                return [Str::camel($key) => $value];
+            });
+        });
+
         $pageTitle = 'view-payment';
-        return view('payment.payment-index', ['pageTitle'=>$pageTitle]); // ! may list payments
+        return view('payment.payment-index', compact('finapiPayments', 'pageTitle'));
     }
 
     public function create()
     {
+        $deposit = auth()->user() ? Deposit::where('user_id', auth()->user()->id)->first(): null;
         $pageTitle = 'create-payment';
-        return view('payment.payment-create',  ['pageTitle'=>$pageTitle]);
+        return view('payment.payment-create',  ['pageTitle'=>$pageTitle, 'deposit'=>$deposit]);
     }
     public function createDirectDebit()
     {
@@ -83,6 +81,50 @@ class PaymentController extends Controller
     public function destroy($id)
     {
         return '404 Not Found';
+    }
+
+    public function getPayments()
+    {
+        $payments = FinapiPayment::with('user','finapiUser','form')->get();
+
+        return response()->json($payments);
+    }
+
+    public function getPayment(Request $request)
+    {
+        $id = $request->id;
+        if($id) {
+            $payment = FinapiPayment::with('user','finapiUser','form')->where('finapi_id', $id)->first();
+            return response()->json($payment);
+        }
+        $payments = FinapiPayment::with('user','finapiUser','form')->get();
+
+        return response()->json($payments);
+    }
+
+    public function getFinapiPayment($id = null)
+    {
+        if(!$id){
+            $id=request()->id;
+        }
+        $finapiPayment = FinapiPayment::where('finapi_id', $id)->first();
+        if(!$finapiPayment){
+            return response()->json(['error' => 'Payment not found'], 404);
+        }
+        try{
+            $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+
+            if($finApiUserAccessToken instanceof JsonResponse){
+                return $finApiUserAccessToken;
+            }
+
+            $finapiPayment = FinAPIService::getPaymentDetails($finApiUserAccessToken->access_token, $finapiPayment->finapi_id);
+
+            return response()->json($finapiPayment);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+        return response()->json($finapiPayment);
     }
 
     public function makeDirectDebitWithApi(Request $request)
@@ -130,29 +172,21 @@ class PaymentController extends Controller
         $currency = $request->input('currency');
         $confirmationNumber = $request->input('confirmationNumber');
 
-        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
+        $email = $request->input('email');
+        $username = $request->input('username');
+
+        $finApiUserAccessToken = FinAPIService::getAccessToken('user', $email);
 
         if($finApiUserAccessToken instanceof JsonResponse){
             return $finApiUserAccessToken;
         }
 
-        $finApiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
-
-        $payment = new Payment([
-            'finapi_user_id' => $finApiUser->id,
-            'order_ref_number' => $confirmationNumber,
-            'amount' => $amount,
-            'currency' => $currency,
-            'type' => 'ORDER', // TODO and this
-            'status' => 'PENDING',
-        ]);
-
-        $payment->save();
+        $finapiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
 
         $paymentDetails = FinAPIService::buildPaymentDetails(
-            $payment->amount,
-            $payment->currency,
-            $finApiUser->username,
+            $amount,
+            $currency,
+            $finapiUser->username,
         );
 
         if(!$paymentDetails){
@@ -161,21 +195,24 @@ class PaymentController extends Controller
 
         try{
             $finApiStandalonePaymentForm = FinAPIService::getStandalonePaymentForm($finApiUserAccessToken->access_token, $paymentDetails);
-            // {"id":"eb54ab34-3e61-4060-b12b-beecbc52a76c","url":"https://webform-sandbox.finapi.io/wf/eb54ab34-3e61-4060-b12b-beecbc52a76c","createdAt":"2024-10-04T13:48:59.194+0000","expiresAt":"2024-10-04T14:08:59.194+0000","type":"STANDALONE_PAYMENT","status":"NOT_YET_OPENED","payload":{}}
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
         if($finApiStandalonePaymentForm) {
             $formData = [
-                'finapi_user_id' => $finApiUser->id,
-                'form_id' => $finApiStandalonePaymentForm->id,
+                'finapi_user_id' => $finapiUser->id,
+                'finapi_id' => $finApiStandalonePaymentForm->id,
+                'form_purpose' => 'PAYMENT',
                 'form_url' => $finApiStandalonePaymentForm->url,
                 'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                 'type' => $finApiStandalonePaymentForm->type,
-                'standing_order_id' => $confirmationNumber
+                'status' => $finApiStandalonePaymentForm->status,
+                'order_conf_number' => $confirmationNumber,
+                'error_code' => isset($finApiStandalonePaymentForm->payload->errorCode) ? $finApiStandalonePaymentForm->payload->errorCode : null,
+                'error_message' => isset($finApiStandalonePaymentForm->payload->errorMessage) ? $finApiStandalonePaymentForm->payload->errorCode : null,
             ];
-            FinApiLoggerService::logFinapiForm($formData, $payment->id);
+            LoggerService::logFinapiForm($formData);
 
             return response()->json($finApiStandalonePaymentForm);
         }

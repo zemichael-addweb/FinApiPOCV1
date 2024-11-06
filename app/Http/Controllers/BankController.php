@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\FinapiUser;
-use App\Services\FinApiLoggerService;
+use App\Services\LoggerService;
 use App\Services\FinAPIService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -86,13 +86,14 @@ class BankController extends Controller
         if($finApiStandalonePaymentForm) {
             $formData = [
                 'finapi_user_id' => $finApiUser->id,
-                'form_id' => $finApiStandalonePaymentForm->id,
+                'form_purpose' => 'BANK_CONNECTION',
+                'finapi_id' => $finApiStandalonePaymentForm->id,
                 'form_url' => $finApiStandalonePaymentForm->url,
                 'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                 'type' => $finApiStandalonePaymentForm->type,
             ];
 
-            FinApiLoggerService::logFinapiForm($formData);
+            LoggerService::logFinapiForm($formData);
 
             return response()->json($finApiStandalonePaymentForm);
         }

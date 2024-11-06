@@ -2,26 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\FinAPIAccessToken;
-use App\Services\HelperServices;
+use App\Models\FinapiPayment;
 use Exception;
-use FinAPI\Client\Api\AuthorizationApi;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
 use stdClass;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
-use App\Models\Payment;
-use App\Services\FinApiLoggerService;
-use App\Services\OpenApiEnumModelService;
+use App\Services\LoggerService;
 use Carbon\Carbon;
-use FinAPI\Client\Api\PaymentsApi;
-use FinAPI\Client\Configuration;
-use FinAPI\Client\Model\CreateMoneyTransferParams;
-use FinAPI\Client\Model\Currency;
-use FinAPI\Client\Model\ISO3166Alpha2Codes;
-use FinAPI\Client\Model\MoneyTransferOrderParams;
-use FinAPI\Client\Model\MoneyTransferOrderParamsCounterpartAddress;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -81,7 +69,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $formParams, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $formParams, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -93,6 +81,8 @@ class FinAPIService {
 
     public static function createFinApiUser($accessToken, $userDetails)
     {
+
+        dd($userDetails, $accessToken);
         $baseUrl =  self::getBaseUrl();
         $url = "$baseUrl/api/v2/users";
         $requestId = self::createUUID();
@@ -110,7 +100,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $userDetails, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $userDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -121,13 +111,18 @@ class FinAPIService {
         return null;
     }
 
-    public static function getAccessToken($type, $email = null, $password = null) {
+    public static function getAccessToken($type, $email = null, $password = null, $username = null) {
         try {
-                if ($type === 'client') {
-                    return FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
-                }
+            if ($type === 'client') {
+                return FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
+            }
 
-                if ($type === 'user') {
+            if ($type === 'user') {
+                $finApiUser = FinapiUser::where('email', $email)
+                ->orWhere('username', $username)
+                ->first();
+
+                if(!$finApiUser) {
                     $user = auth()->user();
                     $email = $email ?? ($user ? $user->email : 'email@localhost.de');
                     $password = $password ?? 'hellopassword';
@@ -136,70 +131,70 @@ class FinAPIService {
                     $finApiUser = $user
                         ? FinapiUser::where('user_id', $user->id)->first()
                         : FinapiUser::where('email', $email)->first();
+                }
 
-                    // If the FinAPI user doesn't exist, create a new one
-                    if (!$finApiUser) {
-                        $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
+                // If the FinAPI user doesn't exist, create a new one
+                if (!$finApiUser) {
+                    $accessToken = FinAPIService::getOAuthToken(config('finApi.grant_type.client_credentials'));
 
-                        if ($accessToken) {
-                            $fetchedFinApiUser = FinAPIService::createFinApiUser($accessToken->access_token, [
-                                'id' => Str::random(),
-                                'password' => $password,
+                    if ($accessToken) {
+                        $fetchedFinApiUser = FinAPIService::createFinApiUser($accessToken->access_token, [
+                            'id' => Str::random(),
+                            'password' => $password,
+                            'email' => $email,
+                            'isAutoUpdateEnabled' => true
+                        ]);
+
+                        if ($fetchedFinApiUser) {
+                            $finApiUser = new FinapiUser([
+                                'user_id' => $user ? $user->id : null,
+                                'username' => $fetchedFinApiUser->id,
+                                'password' => $fetchedFinApiUser->password,
                                 'email' => $email,
-                                'isAutoUpdateEnabled' => true
                             ]);
 
-                            if ($fetchedFinApiUser) {
-                                $finApiUser = new FinapiUser([
-                                    'user_id' => $user ? $user->id : null,
-                                    'username' => $fetchedFinApiUser->id,
-                                    'password' => $fetchedFinApiUser->password,
-                                    'email' => $email,
-                                ]);
-
-                                $finApiUser->save();
-                            }
+                            $finApiUser->save();
                         }
-                    }
-
-                    if ($finApiUser) {
-                        if (isset($finApiUser->expire_at)) {
-                            $now = Carbon::now();
-                            $expiresAt = Carbon::parse($finApiUser->expire_at);
-                            $finApiUserAccessToken = null;
-
-                            if (!isset($finApiUser->refresh_token)) {
-                                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
-                            } elseif ($now->lt($expiresAt)) {
-                                return $finApiUser;
-                            }
-                            // else {
-                            //     $finApiUserAccessToken = FinAPIService::getOAuthToken('refresh_token', null, null, $finApiUser->refresh_token);
-                            // }
-
-                            if (!isset($finApiUserAccessToken->access_token)) {
-                                $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
-                            }
-
-                            if ($finApiUserAccessToken && isset($finApiUserAccessToken->access_token)) {
-                                $finApiUser->access_token = $finApiUserAccessToken->access_token;
-                                $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
-                                $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
-
-                                $finApiUser->save();
-                                return $finApiUserAccessToken;
-                            }
-                        }
-                        return $finApiUser;
                     }
                 }
 
-                return response()->json(['error' => 'Type needs to either be "client" or "user"'], 400);
-            } catch (Exception $e) {
-                return response()->json(['error' => $e->getMessage()], 500);
+                if (isset($finApiUser->expire_at)) {
+                    $now = Carbon::now();
+                    $expiresAt = Carbon::parse($finApiUser->expire_at);
+                    $finApiUserAccessToken = null;
+
+                    if (!isset($finApiUser->refresh_token)) {
+                        $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                    } elseif ($now->lt($expiresAt)) {
+                        return $finApiUser;
+                    }
+                    // else {
+                    //     $finApiUserAccessToken = FinAPIService::getOAuthToken('refresh_token', null, null, $finApiUser->refresh_token);
+                    // }
+
+                    if (!isset($finApiUserAccessToken->access_token)) {
+                        $finApiUserAccessToken = FinAPIService::getOAuthToken('password', $finApiUser->username, $finApiUser->password);
+                    }
+
+                    if ($finApiUserAccessToken && isset($finApiUserAccessToken->access_token)) {
+                        $finApiUser->access_token = $finApiUserAccessToken->access_token;
+                        $finApiUser->expire_at = now()->addSeconds($finApiUserAccessToken->expires_in);
+                        $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
+
+                        $finApiUser->save();
+                        return $finApiUserAccessToken;
+                    }
+                }
+                return $finApiUser;
+
             }
 
-            return null;
+            return response()->json(['error' => 'Type needs to either be "client" or "user"'], 400);
+        } catch (Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+
+        return null;
     }
 
     public static function getBankConnectionForm($userAccessToken, $paymentDetails)
@@ -219,7 +214,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -246,7 +241,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], $paymentDetails, $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -272,7 +267,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['form_id',$formId], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['finapi_form_id',$formId], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -299,14 +294,29 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['ids' => $paymentId], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['ids' => $paymentId], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
-            return json_decode($responseBody);
+            $fetchedPayments = json_decode($responseBody);
+            if (isset($fetchedPayments->payments) && count($fetchedPayments->payments) > 0) {
+                self::updateFinapiPaymentDetail($fetchedPayments->payments);
+            }
+            return $fetchedPayments;
         }
 
         dump('No or invalid payment!');
         return null;
+    }
+
+    public static function updateFinapiPaymentDetail($fetchedPayments){
+        foreach ($fetchedPayments as $fetchedPayment) {
+            $finApiPayment = FinapiPayment::where('finapi_id', $fetchedPayment->id)->first();
+            if ($finApiPayment) {
+                $finApiPayment->status = $fetchedPayment->status;
+                $finApiPayment->status_v2 = $fetchedPayment->statusV2;
+                $finApiPayment->save();
+            }
+        }
     }
 
     public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null)
@@ -391,7 +401,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' => $requestId], ['body' => $body], $responseCode, $responseBody,$requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' => $requestId], ['body' => $body], $responseCode, $responseBody,$requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -484,7 +494,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $data], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $data], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -571,7 +581,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $bankConnectionDetails], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['body'=> $bankConnectionDetails], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 201) {
             return json_decode($responseBody);
@@ -653,7 +663,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
@@ -760,13 +770,75 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
-        FinApiLoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {
             return json_decode($responseBody);
         }
 
         dump('No or invalid Transactions!');
+        return null;
+    }
+
+    public static function fetchWebform($userAccessToken, $id)
+    {
+        https://docs.finapi.io/#get-/api/webForms/-id-
+
+        if(!$id){
+            dump('No or invalid Form ID!');
+            return null;
+        }
+
+        $url = "https://webform-sandbox.finapi.io/api/webForms/$id";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> ['id' => $id]], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Forms!');
+        return null;
+    }
+
+    public static function fetchWebforms($userAccessToken, $filters=null)
+    {
+        // https://docs.finapi.io/#get-/api/webForms
+
+        $url = "https://webform-sandbox.finapi.io/api/webForms";
+        $requestId = self::createUUID();
+        $client = new Client();
+
+        $response = $client->get($url, [
+            'headers' => [
+                'Authorization' => 'Bearer ' . $userAccessToken,
+                'X-Request-Id' => $requestId,
+            ],
+            'query' => $filters
+        ]);
+
+        $responseCode = $response->getStatusCode();
+        $responseBody = $response->getBody()->getContents();
+
+        LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
+
+        if ($responseCode == 200) {
+            return json_decode($responseBody);
+        }
+
+        dump('No or invalid Forms!');
         return null;
     }
 }

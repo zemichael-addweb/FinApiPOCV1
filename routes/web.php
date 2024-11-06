@@ -4,12 +4,14 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\BankController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepositController;
+use App\Http\Controllers\FinApiController;
 use App\Http\Controllers\FinapiPaymentRecipientController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopifyAuthController;
 use App\Http\Controllers\ShopifyController;
+use App\Http\Controllers\WebformController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\VerifyShopifyRequest;
 use Illuminate\Support\Facades\Request;
@@ -25,6 +27,7 @@ Route::get('/', function () {
 })->name('home');
 
 Route::resource( '/payments', PaymentController::class);
+Route::get( '/users/get-finapi-user', [AdminController::class, 'getFinapiUser'])->name('users.get-finapi-user');
 
 // Route::prefix('payments')->group(function () {
 //         Route::get( '/create-direct-debit', [PaymentController::class, 'createDirectDebit'])->name('payment.create-direct-debit');
@@ -35,6 +38,10 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard
 Route::group(['middleware'=>['auth', 'verified']], function () {
     Route::resource('/profile', ProfileController::class);
     Route::resource( '/deposits', DepositController::class);
+    Route::prefix('deposit')->group(function () {
+        Route::get( '/get-deposit', [DepositController::class, 'getDeposit'] )->name('deposit.getdeposit');
+        Route::post( '/pay-from-deposit', [DepositController::class, 'makePaymentFromDeposit'] )->name('deposit.pay-from-deposit');
+    });
     Route::post('/deposits/redirect-to-deposit-form', [DepositController::class, 'redirectToFinAPIPaymentForm'])->name('shopify.deposit.redirect-to-fin');
 });
 
@@ -42,16 +49,30 @@ Route::middleware(EnsureUserIsAdmin::class)
     ->group(function () {
         Route::resource('/settings/finapi-payment-recipient', FinapiPaymentRecipientController::class);
         Route::resource( '/orders', OrderController::class);
+        Route::get( '/order/compare-orders', [OrderController::class, 'compareOrders'])->name('admin.order.compare-orders');
+        Route::get( '/order/get-orders', [OrderController::class, 'getOrders'])->name('admin.order.get-orders');
         Route::resource( '/bank', BankController::class);
         Route::get( '/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
         Route::get( '/settings', [AdminController::class, 'settings'] );
+        Route::prefix('payment')->group(function () {
+            Route::get( '/get-finapi-payment', [PaymentController::class, 'getFinapiPayment'] )->name('admin.payment.get-finapi-payment');
+            Route::get( '/get-payment', [PaymentController::class, 'getPayment'] )->name('admin.payment.getpayment');
+            Route::get( '/get-payments', [PaymentController::class, 'getPayments'] )->name('admin.payment.getpayments');
+        });
+        Route::prefix('deposit')->group(function () {
+            Route::get( '/admin-get-deposit', [DepositController::class, 'getDeposits'] )->name('admin.deposit.getdeposit');
+        });
         Route::prefix('bank')->group(function () {
             Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');
             Route::get( '/get-transactions', [BankController::class, 'getTransactions'] )->name('admin.bank.get-transactions');
             Route::get( '/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
             Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
+        });
+        Route::resource( '/webforms', WebformController::class);
+        Route::prefix('webform')->group(function () {
+            Route::get( '/get-webforms', [WebformController::class, 'getWebforms'] )->name('admin.webform.get-webforms');
         });
 });
 

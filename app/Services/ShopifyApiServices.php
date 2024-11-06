@@ -85,14 +85,49 @@ class ShopifyApiServices {
     }
 
 
-    public static function getShopifyOrders()
+    public static function getShopifyOrders($financialStatus = "")
     {
         $client = self::initRequestClient();
         $orderQueryObject = self::getOrderQueryObject();
 
+        switch($financialStatus){
+            case 'paid':
+                $financialStatusQuery = 'financial_status:paid';
+                break;
+            case 'unpaid':
+                $financialStatusQuery = 'financial_status:authorized OR financial_status:partially_paid OR financial_status:partially_refunded OR financial_status:pending OR financial_status:authorized OR financial_status:partially_paid';
+                break;
+            case 'pending':
+                $financialStatusQuery = 'financial_status:pending';
+                break;
+            case 'authorized':
+                $financialStatusQuery = 'financial_status:authorized';
+                break;
+            case 'partially_paid':
+                $financialStatusQuery = 'financial_status:partially_paid';
+                break;
+            case 'partially_refunded':
+                $financialStatusQuery = 'financial_status:partially_refunded';
+                break;
+            case 'refunded':
+                $financialStatusQuery = 'financial_status:refunded';
+                break;
+            case 'pending':
+                $financialStatusQuery = 'financial_status:pending';
+                break;
+            case 'voided':
+                $financialStatusQuery = 'financial_status:voided';
+                break;
+            case 'expired':
+                $financialStatusQuery = 'financial_status:expired';
+                break;
+            default:
+                $financialStatusQuery = '';
+        }
+
         $query = <<<QUERY
         query {
-            orders(first: 10) {
+            orders(first: 100, query: "$financialStatusQuery") {
                 edges {
                     node {
                         $orderQueryObject
