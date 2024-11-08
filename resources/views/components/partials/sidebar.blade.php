@@ -58,6 +58,17 @@
                                 </a>
                             </li>
                             <!-- Menu Item Bank -->
+                            <!-- Menu Item Transaction -->
+                            <li>
+                                <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
+                                    href="/transaction"
+                                    @click="selected = 'transaction'"
+                                    :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-transaction' || '{{ Request::is('transaction*') }}' }">
+                                    <i class="fa-solid fa-building-columns"></i>
+                                    Transaction
+                                </a>
+                            </li>
+                            <!-- Menu Item Transaction -->
                             <!-- Menu Users Settings -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"

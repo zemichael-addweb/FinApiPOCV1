@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Deposit;
+use App\Models\FinapiBankConnection;
 use App\Models\FinapiForm;
 use App\Models\FinapiPayment;
 use Illuminate\Console\Command;
@@ -121,7 +122,45 @@ class VerifyFinapiForms extends Command
         $loggedForm->bank_connection_id = $formDetails->payload->bankConnectionId;
         $loggedForm->save();
 
-        $this->info('Done verifying bank connection details!');
+        try {
+            $bankConnections = FinAPIService::fetchBankConnections($accessToken, ['ids', $loggedForm->bank_connection_id]);
+        } catch (\Exception $e) {
+            $this->error('Error while fetching bank connections. Please check the form_id.', $e);
+            return;
+        }
+
+        if (!$bankConnections) {
+            $this->error('No bank connections found.');
+            return;
+        }
+
+        foreach ($bankConnections as $connection) {
+            $finapiBankConnection = FinapiBankConnection::where('finapi_id', $connection->id)->first();
+
+            if($finapiBankConnection) {
+                $finapiBankConnection->finapi_id = $connection->id;
+                $finapiBankConnection->finapi_user_id = $connection->user_id ?? null;
+                $finapiBankConnection->finapi_form_id = $connection->form_id ?? null;
+                $finapiBankConnection->bank_name = $connection->bank->name ?? null;
+                $finapiBankConnection->blz = $connection->bank->blz ?? null;
+                $finapiBankConnection->bank_group = $connection->bank->group ?? null;
+                $finapiBankConnection->data = json_encode($connection);
+
+                $finapiBankConnection->save();
+            } else {
+                FinapiBankConnection::create([
+                    'finapi_id' => $connection->id,
+                    'finapi_user_id' => $connection->user_id ?? null,
+                    'finapi_form_id' => $connection->form_id ?? null,
+                    'bank_name' => $connection->bank->name ?? null,
+                    'blz' => $connection->bank->blz ?? null,
+                    'bank_group' => $connection->bank->group ?? null,
+                    'data' => json_encode($connection),
+                ]);
+            }
+        }
+
+        $this->info('Done verifying and saving bank connection details!');
         $this->info('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
     }
 

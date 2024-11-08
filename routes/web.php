@@ -11,6 +11,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ShopifyAuthController;
 use App\Http\Controllers\ShopifyController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WebformController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\VerifyShopifyRequest;
@@ -52,6 +53,7 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::get( '/order/compare-orders', [OrderController::class, 'compareOrders'])->name('admin.order.compare-orders');
         Route::get( '/order/get-orders', [OrderController::class, 'getOrders'])->name('admin.order.get-orders');
         Route::resource( '/bank', BankController::class);
+        Route::resource( '/transaction', TransactionController::class);
         Route::get( '/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
@@ -65,10 +67,13 @@ Route::middleware(EnsureUserIsAdmin::class)
             Route::get( '/admin-get-deposit', [DepositController::class, 'getDeposits'] )->name('admin.deposit.getdeposit');
         });
         Route::prefix('bank')->group(function () {
+            Route::get( '/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
+            Route::get( '/get-bank-connections', [BankController::class, 'getBankConnections'] )->name('admin.bank.get-bank-connections');
+            Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
+        });
+        Route::prefix('transaction')->group(function () {
             Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');
             Route::get( '/get-transactions', [BankController::class, 'getTransactions'] )->name('admin.bank.get-transactions');
-            Route::get( '/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
-            Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
         });
         Route::resource( '/webforms', WebformController::class);
         Route::prefix('webform')->group(function () {

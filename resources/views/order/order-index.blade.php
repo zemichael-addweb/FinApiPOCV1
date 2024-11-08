@@ -22,8 +22,7 @@
                         <th class="py-2 px-4 text-left">Total Outstanding</th>
                         <th class="py-2 px-4 text-left">Processed At</th>
                         <th class="py-2 px-4 text-left">Status</th>
-                        <th class="py-2 px-4 text-left">Status Update</th>
-                        <th class="py-2 px-4 text-left">Mark Paid</th>
+                        {{--<th class="py-2 px-4 text-left">Status Update</th>--}}
                         <th class="py-2 px-4 text-left">Refund</th>
                     </tr>
                 </thead>
@@ -46,7 +45,7 @@
                             <td class="py-2 px-4">
                                 {{ $order->node->displayFinancialStatus }}
                             </td>
-                            <td class="py-2 px-4">
+                            {{-- <td class="py-2 px-4">
                                 <!-- Payment Status Dropdown and Button -->
                                 <div x-data="{ paymentStatus: '', orderId: '{{ $order->node->id }}', message: '' }">
                                     <div class="flex gap-2 p-2 border">
@@ -113,45 +112,8 @@
                                         }
                                     </script>
                                 </div>
-                            </td>
-                            <td class="py-2 px-4 text-nowrap">
-                                <!-- Payment Status Dropdown and Button -->
-                                <div x-data="{ orderId: '{{ $order->node->id }}', message: '' }">
-                                    <button @click="markOrderAsPaid" class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded">
-                                        Mark As Paid
-                                    </button>
-
-                                    <!-- Status Message -->
-                                    <p x-text="message" class="text-sm mt-1" :class="message.includes('successfully') ? 'text-green-500' : 'text-red-500'"></p>
-
-                                    <!-- AlpineJS Script for AJAX -->
-                                    <script>
-                                        function markOrderAsPaid() {
-                                            //fetch post request
-                                            let token = document.head.querySelector('meta[name="csrf-token"]').content;
-                                            fetch('{{ route('shopify.order.markAsPaid') }}', {
-                                                method: 'POST',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                    'X-CSRF-TOKEN': token
-                                                },
-                                                body: JSON.stringify({
-                                                    order_id: this.orderId,
-                                                })
-                                            }).then(response => {
-                                                if (response.ok) {
-                                                    this.message = 'Payment status updated successfully.';
-                                                } else {
-                                                    this.message = 'An error occurred.';
-                                                }
-                                            }).catch(error => {
-                                                this.message = error.response.data.error || 'An error occurred.';
-                                            });
-                                        }
-                                    </script>
-                                </div>
-                            </td>
-                            <td class="py-2 px-4 text-nowrap">
+                            </td> --}}
+                            <td x-show="'{{ $order->node->displayFinancialStatus }}' == 'PAID'" class="py-2 px-4 text-nowrap">
                                 <!-- Payment Status Dropdown and Button -->
                                 <div x-data="{ orderId: '{{ $order->node->id }}', message: '' }">
                                     <button @click="refundOrder" class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded">

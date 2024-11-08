@@ -2,13 +2,11 @@
 
 namespace App\Services;
 
-use App\Models\Deposit;
 use App\Models\User;
-use App\Models\DepositTransaction;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-class DepositServices
+class BankServices
 {
     public function __construct()
     {
@@ -23,13 +21,13 @@ class DepositServices
         return Auth::user();
     }
 
-    public static function getUserDeposit($userId = null)
+    public static function getBankConnections($userId = null)
     {
         $user = self::getUser($userId);
         return $user ? Deposit::where('user_id', $user->id)->first() : null;
     }
 
-    public static function makeDeposit($amount, $userId = null, $finapiPaymentId = null)
+    public static function saveBankConnection($amount, $userId = null, $finapiPaymentId = null)
     {
         $user = self::getUser($userId);
         if ($user) {

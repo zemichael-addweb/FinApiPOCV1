@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FinapiBankConnection;
 use App\Models\FinapiUser;
 use App\Services\LoggerService;
 use App\Services\FinAPIService;
@@ -14,7 +15,8 @@ class BankController extends Controller
 {
     public function index()
     {
-        return view('bank.bank-index');
+        $bankConnections = $this->getBankConnections();
+        return view('bank.bank-index', compact('bankConnections'));
     }
 
     public function show(Request $request, $id)
@@ -22,10 +24,8 @@ class BankController extends Controller
         switch($id){
             case 'import-bank-connection':
                 return $this->importBankConnection();
-            case 'transactions':
-                return $this->transactions($request);
-            case 'get-transactions':
-                return $this->getTransactions($request);
+            case 'get-bank-connections':
+                return $this->getBankConnections($request);
             default :
                 return '404, Not found';
         }
@@ -99,63 +99,50 @@ class BankController extends Controller
         }
     }
 
-    public function transactions(Request $request)
-    {
-        $transactions = json_decode($this->getTransactions($request)->getContent());
-        $bankConnections = json_decode($this->getBankConnections($request)->getContent());
-
-        return view('bank.transactions-index', ['transactions' => $transactions, 'bankConnections' => $bankConnections]);
-    }
-
-    public function getTransactions(Request $request)
-    {
-        $filters = FinAPIService::buildTransactionFilters($request);
-
-        if (!$filters) {
-            return response()->json(['error' => 'Failed to build transaction filters. Plese contact system admin.'], 500);
-        }
-
-        if($filters instanceof JsonResponse){
-            return $filters;
-        }
-
-        $finApiUserAccessToken = FinAPIService::getAccessToken('user');
-
-        if($finApiUserAccessToken instanceof JsonResponse){
-            return $finApiUserAccessToken;
-        }
-
-        try {
-            $transactions = FinAPIService::fetchTransactions($finApiUserAccessToken->access_token, $filters);
-        } catch (Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-
-        if ($transactions) {
-            return response()->json($transactions);
-        }
-
-        return response()->json(['message' => 'No transactions found'], 404);
-    }
-
-    public function getBankConnections(Request $request)
+    public function getBankConnections(Request $request = null)
     {
         $finApiUserAccessToken = FinAPIService::getAccessToken('user');
 
-        if($finApiUserAccessToken instanceof JsonResponse){
+        if ($finApiUserAccessToken instanceof \Illuminate\Http\JsonResponse) {
             return $finApiUserAccessToken;
         }
 
         try {
             $bankConnections = FinAPIService::fetchBankConnections($finApiUserAccessToken->access_token);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
-        if ($bankConnections) {
-            return response()->json($bankConnections);
+        if (!$bankConnections) {
+            return response()->json(['message' => 'No bank connections found.'], 404);
         }
 
-        return response()->json(['message' => 'No Bank Connections found. Please add one.'], 404);
+        foreach ($bankConnections->connections as $connection) {
+            $finapiBankConnection = FinapiBankConnection::where('finapi_id', $connection->id)->first();
+
+            if($finapiBankConnection) {
+                $finapiBankConnection->finapi_id = $connection->id;
+                $finapiBankConnection->finapi_user_id = $connection->user_id ?? null;
+                $finapiBankConnection->finapi_form_id = $connection->form_id ?? null;
+                $finapiBankConnection->bank_name = $connection->bank->name ?? null;
+                $finapiBankConnection->blz = $connection->bank->blz ?? null;
+                $finapiBankConnection->bank_group = $connection->bank->group ?? null;
+                $finapiBankConnection->data = json_encode($connection);
+
+                $finapiBankConnection->save();
+            } else {
+                FinapiBankConnection::create([
+                    'finapi_id' => $connection->id,
+                    'finapi_user_id' => $connection->user_id ?? null,
+                    'finapi_form_id' => $connection->form_id ?? null,
+                    'bank_name' => $connection->bank->name ?? null,
+                    'blz' => $connection->bank->blz ?? null,
+                    'bank_group' => $connection->bank->group ?? null,
+                    'data' => json_encode($connection),
+                ]);
+            }
+        }
+
+        return $bankConnections;
     }
 }
