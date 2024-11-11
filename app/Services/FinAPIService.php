@@ -81,7 +81,6 @@ class FinAPIService {
 
     public static function createFinApiUser($accessToken, $userDetails)
     {
-        dd($userDetails, $accessToken);
         $baseUrl =  self::getBaseUrl();
         $url = "$baseUrl/api/v2/users";
         $requestId = self::createUUID();
@@ -117,6 +116,7 @@ class FinAPIService {
             }
 
             if ($type === 'user') {
+
                 $finApiUser = FinapiUser::where('email', $email)
                 ->orWhere('username', $username)
                 ->first();
@@ -157,7 +157,15 @@ class FinAPIService {
                     }
                 }
 
-                if (isset($finApiUser->expire_at)) {
+
+                $tokenExpired = true;
+
+                if($finApiUser && $finApiUser->expire_at !== null){
+                    $tokenExpired = Carbon::now()->gt($finApiUser->expire_at);
+                }
+
+
+                if ($tokenExpired) {
                     $now = Carbon::now();
                     $expiresAt = Carbon::parse($finApiUser->expire_at);
                     $finApiUserAccessToken = null;
@@ -181,9 +189,10 @@ class FinAPIService {
                         $finApiUser->refresh_token = $finApiUserAccessToken->refresh_token;
 
                         $finApiUser->save();
-                        return $finApiUserAccessToken;
+                        return $finApiUser;
                     }
                 }
+
                 return $finApiUser;
 
             }
