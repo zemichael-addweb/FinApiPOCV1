@@ -81,7 +81,6 @@ class FinAPIService {
 
     public static function createFinApiUser($accessToken, $userDetails)
     {
-
         dd($userDetails, $accessToken);
         $baseUrl =  self::getBaseUrl();
         $url = "$baseUrl/api/v2/users";
@@ -319,13 +318,15 @@ class FinAPIService {
         }
     }
 
-    public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null)
+    public static function buildPaymentDetails($amount, $currencyCode, $finapiUserId = null, $confirmationNumber = null)
     {
         $finApiPaymentRecipient = FinapiPaymentRecipient::first();
 
         if (!$finApiPaymentRecipient) {
             return null;
         }
+
+        $purpose = $confirmationNumber ? "shopify_confirmation_number:$confirmationNumber" : "shopify_confirmation_number:no_confirmation_number";
 
         $order = [
             "recipient" => [
@@ -350,7 +351,7 @@ class FinAPIService {
                 "value" => $amount,
                 "currency" => $currencyCode,
             ],
-            "purpose" => $finapiUserId ? "Payment for FinAPI User: $finapiUserId" : "Payment for FinAPI User",
+            "purpose" => $purpose
             // "sepaPurposeCode" => "SALA",
             // "endToEndId" => "endToEndId"
         ];
@@ -681,6 +682,7 @@ class FinAPIService {
             'ids' => 'nullable|array|max:1000',
             'ids.*' => 'integer',
             'view' => 'nullable|in:bankView,userView',
+            'confirmationNumber' => 'nullable|string|max:255',
             'search' => 'nullable|string|max:255',
             'counterpart' => 'nullable|string|max:255',
             'purpose' => 'nullable|string|max:255',
@@ -716,14 +718,17 @@ class FinAPIService {
             return response()->json(['success' => false, 'errors' => $validator->errors()->all()], 400);
         }
 
+        $purposeFilter = $request->input('confirmationNumber') ? $request->input('confirmationNumber') : $request->input('purpose');
+
         $filters = [
-            'ids' => $request->input('ids'),
+            'ids' => $request->input('ids') ? join(', ', $request->input('ids')) : null,
             'view' => $request->input('view', 'userView'),
+            'confirmationNumber' => $request->input('confirmationNumber'),
             'search' => $request->input('search'),
             'counterpart' => $request->input('counterpart'),
-            'purpose' => $request->input('purpose'),
+            'purpose' => $purposeFilter,
             'currency' => $request->input('currency'),
-            'accountIds' => $request->input('accountIds'),
+            'accountIds' => $request->input('accountIds') ? join(', ', $request->input('accountIds')) : null,
             'minBankBookingDate' => $request->input('minBankBookingDate'),
             'maxBankBookingDate' => $request->input('maxBankBookingDate'),
             'minFinapiBookingDate' => $request->input('minFinapiBookingDate'),
@@ -741,7 +746,7 @@ class FinAPIService {
             'maxImportDate' => $request->input('maxImportDate'),
             'page' => $request->input('page', 1),
             'perPage' => $request->input('perPage', 20),
-            'order' => $request->input('order', ['id', 'ASC']),
+            'order' => 'finapiBookingDate,desc',
         ];
 
         $filters = array_filter($filters, function ($value) {

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FinapiTransaction;
+use App\Models\OrderTransactionLink;
+use App\Models\ShopifyOrder;
 use App\Services\LaravelSessionStorage;
 use App\Services\ShopifyApiServices;
 use Illuminate\Http\Request;
@@ -14,12 +17,39 @@ class OrderController extends Controller
     // resource controller
     public function index()
     {
-        $shopifyOrders = ShopifyApiServices::getShopifyOrders()->getData();
+        $orders = ShopifyOrder::orderBy('processed_at', 'desc')->get()->map(function ($order) {
+            return (object) [
+                'id' => $order->shopify_id,
+                'name' => $order->name,
+                'email' => $order->email,
+                'processedAt' => $order->processed_at,
+                'data' => json_decode($order->data)
+            ];
+        });
 
+        return view('order.order-index', compact('orders'));
+    }
+
+    public function refreshOrders () {
+        $shopifyOrders = ShopifyApiServices::getShopifyOrders()->getData();
         if(!isset($shopifyOrders->success) || empty($shopifyOrders->data)) {
-            return view('order.order-index', ['orders' => []]);
+            return response()->json([]);
         }
-        return view('order.order-index', ['orders' => $shopifyOrders->data]);
+        return response()->json($shopifyOrders);
+    }
+
+    public function getLocalOrders () {
+        $shopifyOrders = ShopifyOrder::orderBy('processed_at', 'desc')->get()->map(function ($order) {
+            return (object) [
+                'id' => $order->shopify_id,
+                'name' => $order->name,
+                'email' => $order->email,
+                'processedAt' => $order->processed_at,
+                'data' => json_decode($order->data)
+            ];
+        });
+
+        return response()->json($shopifyOrders);
     }
 
     public function create()
@@ -77,7 +107,8 @@ class OrderController extends Controller
 
     public function markShopifyOrderAsPaid(Request $request)
     {
-        return ShopifyApiServices::markShopifyOrderAsPaid($request);
+        $orderId = $request->order_id;
+        return ShopifyApiServices::markShopifyOrderAsPaid($orderId);
     }
 
     public function refundOrder(Request $request)
@@ -100,5 +131,43 @@ class OrderController extends Controller
     public function compareOrders(Request $request)
     {
        return view('order.order-compare');
+    }
+
+    public function linkOrderToTransaction (Request $request)
+    {
+        $validated = $request->validate([
+            'order_shopify_id' => 'required|exists:shopify_orders,shopify_id',
+            'transaction_finapi_id' => 'required|exists:finapi_transactions,finapi_id',
+        ]);
+
+        $shopifyOrder = ShopifyOrder::where('shopify_id', $validated['order_shopify_id'])->first();
+        $finapiTransaction = FinapiTransaction::where('finapi_id', $validated['transaction_finapi_id'])->first();
+
+        $existingLink = OrderTransactionLink::where('order_id', $shopifyOrder->id)
+            ->where('transaction_id', $finapiTransaction->id)
+            ->first();
+
+        if ($existingLink) {
+            return response()->json(['message' => 'This order and transaction are already linked.'], 409);
+        }
+
+        $order = ShopifyApiServices::markShopifyOrderAsPaid($validated['order_shopify_id'])->getData();
+
+        if(!isset($shopifyOrders->success) || empty($shopifyOrders->data)) {
+            return response()->json(['success' => false, 'message' => 'No orders found']);
+        }
+
+        $orderTransactionLink = OrderTransactionLink::create([
+            'order_id' => $shopifyOrder->id,
+            'transaction_id' => $finapiTransaction->id,
+            'paid' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order successfully linked to transaction.',
+            'data' => $orderTransactionLink,
+            'markedOrder' => $order
+        ], 201);
     }
 }

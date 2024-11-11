@@ -187,6 +187,7 @@ class PaymentController extends Controller
             $amount,
             $currency,
             $finapiUser->username,
+            $confirmationNumber
         );
 
         if(!$paymentDetails){

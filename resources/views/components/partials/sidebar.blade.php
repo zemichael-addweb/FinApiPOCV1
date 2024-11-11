@@ -64,7 +64,7 @@
                                     href="/transaction"
                                     @click="selected = 'transaction'"
                                     :class="{ 'bg-graydark dark:bg-meta-4': selected === 'view-transaction' || '{{ Request::is('transaction*') }}' }">
-                                    <i class="fa-solid fa-building-columns"></i>
+                                    <i class="fa-solid fa-money-bill-transfer"></i>
                                     Transaction
                                 </a>
                             </li>
@@ -80,7 +80,7 @@
                                 </a>
                             </li>
                             <!-- Menu Users Settings -->
-                            <!-- Menu Webforms Settings -->
+                            <!-- Menu Webforms -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                     href="/webforms"
@@ -90,8 +90,8 @@
                                     Webforms
                                 </a>
                             </li>
-                            <!-- Menu Webforms Settings -->
-                            <!-- Menu Item Settings -->
+                            <!-- Menu Webforms -->
+                            <!-- Menu Item -->
                             <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                     href="/settings"
@@ -101,7 +101,7 @@
                                     Settings
                                 </a>
                             </li>
-                            <!-- Menu Item Settings -->
+                            <!-- Menu Item -->
                             @endif
                         @endif
 

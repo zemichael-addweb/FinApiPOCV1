@@ -9,6 +9,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Str;
 use App\Models\FinapiUser;
 use App\Services\FinAPIService;
+use App\Services\ShopifyApiServices;
 use GuzzleHttp\Client;
 
 class verifyFinapiPayments extends Command
@@ -146,6 +147,14 @@ class verifyFinapiPayments extends Command
 
                     $finapiPayment->deposit_id = $userDeposit->id;
                     $finapiPayment->save();
+                }
+
+                if(isset($payment->statusV2) && $payment->statusV2 == 'SUCCESSFUL' && isset($loggedForm->order_ref_number)){
+                    $shopifyOrder = ShopifyApiServices::getShopifyOrderByConfirmationNumber($loggedForm->order_ref_number)->getData();
+                    if($shopifyOrder && $shopifyOrder->success && isset($shopifyOrder->data->id)){
+                        $shopifyOrderId = $shopifyOrder->data->id;
+                        ShopifyApiServices::markShopifyOrderAsPaid($shopifyOrderId);
+                    }
                 }
 
                 $this->info('Updated Payment Details : ' . json_encode($updatedPayments));

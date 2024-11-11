@@ -21,6 +21,7 @@
          $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)));"
     :class="{'dark text-bodydark bg-boxdark-2': darkMode === true}"
   >
+    <x-data-loading />
     <!-- ===== Preloader Start ===== -->
     <x-partials.preloader />
     <!-- ===== Preloader End ===== -->
@@ -45,7 +46,6 @@
                     {{ $header }}
                 </div>
             @endisset
-            <x-data-loading />
 
             {{ $slot }}
           </div>

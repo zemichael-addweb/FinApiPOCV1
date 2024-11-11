@@ -62,6 +62,7 @@
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Expires At</th>
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Type</th>
                                     <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Status</th>
+                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">View</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -166,11 +167,11 @@
         <script>
           function webformData() {
               return {
-                  webforms: @json($webforms->items),
-                  page: {{ $webforms->paging->page }},
-                  perPage: {{ $webforms->paging->perPage }},
-                  pageCount: {{ $webforms->paging->pageCount }},
-                  totalCount: {{ $webforms->paging->totalCount }},
+                  webforms: @if(isset($webforms->items))@json($webforms->items)@else "[]" @endif,
+                  page: {{ isset($webforms->paging) ? $webforms->paging->page : "" }},
+                  perPage: {{ isset($webforms->paging) ? $webforms->paging->perPage : ""  }},
+                  pageCount: {{ isset($webforms->paging) ? $webforms->paging->pageCount : ""  }},
+                  totalCount: {{ isset($webforms->paging) ? $webforms->paging->totalCount : ""  }},
                   orderBy : '',
                   showModal: false,
                   selectedWebform: {},

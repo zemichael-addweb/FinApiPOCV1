@@ -15,7 +15,20 @@ class BankController extends Controller
 {
     public function index()
     {
-        $bankConnections = $this->getBankConnections();
+        $bankConnections = FinapiBankConnection::all();
+        return view('bank.bank-index', compact('bankConnections'));
+    }
+
+    public function refreshBankConnections()
+    {
+        $fetchedBankConnections = $this->getBankConnections();
+        if($fetchedBankConnections->connections){
+            $bankConnections = array_map(function($connection){
+                return $connection->data = json_encode($connection);
+            }, $fetchedBankConnections->connections);
+        } else{
+            $bankConnections = [];
+        }
         return view('bank.bank-index', compact('bankConnections'));
     }
 
@@ -78,24 +91,24 @@ class BankController extends Controller
         $finApiUser = FinapiUser::where('access_token', $finApiUserAccessToken->access_token)->first();
 
         try{
-            $finApiStandalonePaymentForm = FinAPIService::getImportBankConnectionform($finApiUserAccessToken->access_token, $bankConnectionDetails);
+            $finapiImportBankConnectionForm = FinAPIService::getImportBankConnectionform($finApiUserAccessToken->access_token, $bankConnectionDetails);
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
-        if($finApiStandalonePaymentForm) {
+        if($finapiImportBankConnectionForm) {
             $formData = [
                 'finapi_user_id' => $finApiUser->id,
                 'form_purpose' => 'BANK_CONNECTION',
-                'finapi_id' => $finApiStandalonePaymentForm->id,
-                'form_url' => $finApiStandalonePaymentForm->url,
-                'expire_time' => $finApiStandalonePaymentForm->expiresAt,
-                'type' => $finApiStandalonePaymentForm->type,
+                'finapi_id' => $finapiImportBankConnectionForm->id,
+                'form_url' => $finapiImportBankConnectionForm->url,
+                'expire_time' => $finapiImportBankConnectionForm->expiresAt,
+                'type' => $finapiImportBankConnectionForm->type,
             ];
 
             LoggerService::logFinapiForm($formData);
 
-            return response()->json($finApiStandalonePaymentForm);
+            return response()->json($finapiImportBankConnectionForm);
         }
     }
 

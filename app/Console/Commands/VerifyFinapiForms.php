@@ -13,6 +13,7 @@ use App\Models\User;
 use App\Services\DepositServices;
 use App\Services\LoggerService;
 use App\Services\FinAPIService;
+use App\Services\ShopifyApiServices;
 
 class VerifyFinapiForms extends Command
 {
@@ -35,7 +36,7 @@ class VerifyFinapiForms extends Command
      */
     public function handle()
     {
-        $processedStatuses = ['COMPLETED', 'COMPLETED_WITH_ERROR', 'EXPIRED','ABORTED','CANCELLED'];
+        $processedStatuses = ['COMPLETED', 'COMPLETED_WITH_ERROR', 'EXPIRED','ABORTED','CANCELLED', 'NOT_YET_OPENED'];
 
         $loggedForms = FinapiForm::whereNotIn('status', $processedStatuses)
             ->orWhere('status', null)
@@ -103,24 +104,16 @@ class VerifyFinapiForms extends Command
     }
 
     public function verifyBankConnectionForm($accessToken, $loggedForm){
+        if (!isset($loggedForm->finapi_id)) {
+            $this->error('No or Invalid Finapi Id Found.');
+            return;
+        }
         try{
-            $formDetails = FinAPIService::getFromDetails($accessToken, $loggedForm->form_id);
+            $formDetails = FinAPIService::getFromDetails($accessToken, $loggedForm->finapi_id);
         } catch (\Exception $e) {
             $this->error('Error while fetching access token. Please check the form_id.');
             return;
         }
-
-        $this->updateFormStatus($loggedForm, $formDetails);
-
-        if (!isset($formDetails->payload->bankConnectionId)) {
-            $this->error('No Bank Connection Id Found.' . isset($formDetails->payload->errorMessage) ? isset($formDetails->payload->errorMessage) : 'Please make sure you connected your bank using this url : ' . $formDetails->url);
-            return;
-        }
-
-        $this->info('form fetched: ' . json_encode($formDetails));
-
-        $loggedForm->bank_connection_id = $formDetails->payload->bankConnectionId;
-        $loggedForm->save();
 
         try {
             $bankConnections = FinAPIService::fetchBankConnections($accessToken, ['ids', $loggedForm->bank_connection_id]);
@@ -134,7 +127,7 @@ class VerifyFinapiForms extends Command
             return;
         }
 
-        foreach ($bankConnections as $connection) {
+        foreach ($bankConnections->connections as $connection) {
             $finapiBankConnection = FinapiBankConnection::where('finapi_id', $connection->id)->first();
 
             if($finapiBankConnection) {
@@ -159,6 +152,19 @@ class VerifyFinapiForms extends Command
                 ]);
             }
         }
+
+        $this->updateFormStatus($loggedForm, $formDetails);
+
+        if (!isset($formDetails->payload->bankConnectionId)) {
+            $this->error('No Bank Connection Id Found.' . isset($formDetails->payload->errorMessage) ? isset($formDetails->payload->errorMessage) : 'Please make sure you connected your bank using this url : ' . $formDetails->url);
+            return;
+        }
+
+        $this->info('form fetched: ' . json_encode($formDetails));
+
+        $loggedForm->bank_connection_id = $formDetails->payload->bankConnectionId;
+        $loggedForm->save();
+
 
         $this->info('Done verifying and saving bank connection details!');
         $this->info('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
@@ -249,7 +255,7 @@ class VerifyFinapiForms extends Command
                     $this->error('User not found.');
                     continue;
                 }
-                $userDeposit = DepositServices::makeDeposit($payment->amount, $user->id, $finapiPayment->id);
+                $userDeposit = App\Console\Commands\DepositServices::makeDeposit($payment->amount, $user->id, $finapiPayment->id);
                 if(!$userDeposit){
                     $userDeposit = Deposit::create([
                         'user_id' => $user->id,
@@ -274,13 +280,21 @@ class VerifyFinapiForms extends Command
 
         $this->updateFormStatus($loggedForm, $formDetails);
 
+        if($payment->statusV2 == 'SUCCESSFUL' && $loggedForm->order_ref_number){
+            $shopifyOrder = ShopifyApiServices::getShopifyOrderByConfirmationNumber($loggedForm->order_ref_number)->getData();
+            if($shopifyOrder && $shopifyOrder->success && isset($shopifyOrder->data->id)){
+                $shopifyOrderId = $shopifyOrder->data->id;
+                ShopifyApiServices::markShopifyOrderAsPaid($shopifyOrderId);
+            }
+        }
+
         $this->info('Updated Payment Details : ' . json_encode($updatedPayments));
         $this->info('Done verifying payment details!');
         $this->info('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
     }
 
     public function updateFormStatus($loggedForm, $formDetails){
-        $loggedForm->status = $formDetails ? $formDetails->status : null;
+        $loggedForm->status = $formDetails && isset($formDetails->status) ? $formDetails->status : null;
 
         if(isset($formDetails->payload->errorCode) && isset($formDetails->payload->errorMessage)){
             $loggedForm->error_code = $formDetails->payload->errorCode;
@@ -290,5 +304,7 @@ class VerifyFinapiForms extends Command
         $loggedForm->save();
 
         $this->info('Form status of ID : '. $loggedForm->id .' has been updated successfully!');
+
+        return;
     }
 }

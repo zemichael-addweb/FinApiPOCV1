@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\FinapiBankConnection;
+use App\Models\FinapiTransaction;
+use App\Models\ShopifyOrder;
 use App\Services\FinAPIService;
 use Exception;
 use Illuminate\Http\JsonResponse;
@@ -11,10 +14,20 @@ class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $transactions = json_decode($this->getTransactions($request)->getContent());
-        $bankConnections = json_decode($this->getBankConnections($request)->getContent());
+        try {
+            $transactions = json_decode($this->getTransactions($request)->getContent());
+            $bankConnections = FinapiBankConnection::all();
 
-        return view('transaction.transaction-index', ['transactions' => $transactions, 'bankConnections' => $bankConnections]);
+            return view('transaction.transaction-index', ['transactions' => $transactions, 'bankConnections' => $bankConnections]);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'Failed to fetch transactions. Plese contact system admin.'], 500);
+        }
+    }
+
+    public function refreshTransactions(Request $request)
+    {
+        $transactions = json_decode($this->getTransactions($request)->getContent());
+        return response()->json($transactions);
     }
 
     public function show(Request $request, $id)
@@ -22,12 +35,16 @@ class TransactionController extends Controller
         switch($id){
             case 'import-bank-connection':
                 return $this->importBankConnection();
-            case 'transactions':
-                return $this->transactions($request);
             case 'get-transactions':
                 return $this->getTransactions($request);
             default :
-                return '404, Not found';
+                $request->merge(['ids' => [$id]]);
+                $transactions = json_decode($this->getTransactions($request)->getContent());
+                if(isset($transactions->transactions[0]))
+                    return response()->json($transactions->transactions[0]);
+                else{
+                    return response()->json(['error' => 'Error fetching or Transaction not found.'], 404);
+                }
         }
     }
 
@@ -76,6 +93,44 @@ class TransactionController extends Controller
 
         try {
             $transactions = FinAPIService::fetchTransactions($finApiUserAccessToken->access_token, $filters);
+
+            foreach($transactions->transactions as $transaction){
+                if(strpos($transaction->purpose, 'shopify_confirmation_number') !== false){
+                    $shopify_confirmation_number = explode(':', $transaction->purpose)[1];
+
+                    if($shopify_confirmation_number != 'no_confirmation_number') {
+                        $shopify_order = ShopifyOrder::where('confirmation_number', $shopify_confirmation_number)->first();
+                    }
+                }
+
+                $savedTransaction = FinapiTransaction::where('finapi_id', $transaction->id)->first();
+
+                if(!$savedTransaction){
+                    $savedTransaction = new FinapiTransaction([
+                        'finapi_id' => $transaction->id,
+                        // 'finapi_user_id' => $transaction->userId,
+                        // 'finapi_form_id' => $transaction->formId,
+                        // 'finapi_payment_id' => $transaction->paymentId,
+                        'shopify_order_id' => isset($shopify_order) && $shopify_order ? $shopify_order->id : null,
+                        'account_id' => $transaction->accountId,
+                        'value_date' => $transaction->valueDate,
+                        'bank_booking_date' => $transaction->bankBookingDate,
+                        'amount' => $transaction->amount,
+                        'currency' => $transaction->currency,
+                        'purpose' => $transaction->purpose,
+                        'counterpart_name' => $transaction->counterpartName,
+                        'type' => $transaction->type,
+                        'shopify_confirmation_number' => isset($shopify_confirmation_number) ? $shopify_confirmation_number : null,
+                        'data' => json_encode($transaction)
+                    ]);
+                    $savedTransaction->save();
+                } else {
+                    $savedTransaction->shopify_order_id = isset($shopify_order) ? $shopify_order->id : null;
+                    $savedTransaction->data = json_encode($transaction);
+                    $savedTransaction->save();
+                }
+            }
+
         } catch (Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

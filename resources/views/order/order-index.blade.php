@@ -29,25 +29,25 @@
                 <tbody>
                     @foreach ($orders as $order)
                         <tr class="border-t border-slate-300 dark:border-slate-700">
-                            <td class="py-2 px-4">{{ $order->node->id }}</td>
-                            <td class="py-2 px-4">{{ $order->node->name }}</td>
-                            <td class="py-2 px-4">{{ $order->node->email }}</td>
-                            <td class="py-2 px-4">{{ implode(', ', $order->node->paymentGatewayNames) }}</td>
+                            <td class="py-2 px-4">{{ $order->data->id }}</td>
+                            <td class="py-2 px-4">{{ $order->data->name }}</td>
+                            <td class="py-2 px-4">{{ $order->data->email }}</td>
+                            <td class="py-2 px-4">{{ implode(', ', $order->data->paymentGatewayNames) }}</td>
                             <td class="py-2 px-4 text-nowrap">
-                                {{ $order->node->currentTotalPriceSet->presentmentMoney->amount }}
-                                {{ $order->node->currentTotalPriceSet->presentmentMoney->currencyCode }}
+                                {{ $order->data->currentTotalPriceSet->presentmentMoney->amount }}
+                                {{ $order->data->currentTotalPriceSet->presentmentMoney->currencyCode }}
                             </td>
                             <td class="py-2 px-4">
-                                {{ $order->node->totalOutstandingSet->presentmentMoney->amount }}
-                                {{ $order->node->totalOutstandingSet->presentmentMoney->currencyCode }}
+                                {{ $order->data->totalOutstandingSet->presentmentMoney->amount }}
+                                {{ $order->data->totalOutstandingSet->presentmentMoney->currencyCode }}
                             </td>
-                            <td class="py-2 px-4">{{ $order->node->processedAt }}</td>
+                            <td class="py-2 px-4">{{ $order->data->processedAt }}</td>
                             <td class="py-2 px-4">
-                                {{ $order->node->displayFinancialStatus }}
+                                {{ $order->data->displayFinancialStatus }}
                             </td>
                             {{-- <td class="py-2 px-4">
                                 <!-- Payment Status Dropdown and Button -->
-                                <div x-data="{ paymentStatus: '', orderId: '{{ $order->node->id }}', message: '' }">
+                                <div x-data="{ paymentStatus: '', orderId: '{{ $order->data->id }}', message: '' }">
                                     <div class="flex gap-2 p-2 border">
                                         <select x-model="paymentStatus" class="border-slate-300 dark:border-slate-600 rounded-md shadow-sm">
                                             <option value="">Select Status</option>
@@ -113,9 +113,9 @@
                                     </script>
                                 </div>
                             </td> --}}
-                            <td x-show="'{{ $order->node->displayFinancialStatus }}' == 'PAID'" class="py-2 px-4 text-nowrap">
+                            <td x-show="'{{ $order->data->displayFinancialStatus }}' == 'PAID'" class="py-2 px-4 text-nowrap">
                                 <!-- Payment Status Dropdown and Button -->
-                                <div x-data="{ orderId: '{{ $order->node->id }}', message: '' }">
+                                <div x-data="{ orderId: '{{ $order->data->id }}', message: '' }">
                                     <button @click="refundOrder" class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded">
                                         Refund
                                     </button>

@@ -74,7 +74,7 @@
             function bankConnectionForm() {
                 return {
                     bank_connection_name: 'My Bank Connection',
-                    max_days_for_download: 0,
+                    max_days_for_download: 3650,
                     allowed_interfaces: ['XS2A', 'FINTS_SERVER', 'WEB_SCRAPER'],
                     allow_test_bank: true,
                     errorMessage: '',

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ShopifyOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Shopify\Clients\Graphql;
@@ -13,6 +14,10 @@ class ShopifyApiServices {
     }
 
     public static function getOrderQueryObject() {
+        // INFO Transactions removed because its long
+        // transactions {
+        //     ". self::getTransactionQueryObject() ."
+        // }
         return "
         id
         name
@@ -30,9 +35,6 @@ class ShopifyApiServices {
         }
         totalOutstandingSet {
             ". self::getMoneyBagQueryObject() ."
-        }
-        transactions {
-            ". self::getTransactionQueryObject() ."
         }
         unpaid
         createdAt
@@ -84,8 +86,7 @@ class ShopifyApiServices {
         return new Graphql($shopDomain, $accessToken);
     }
 
-
-    public static function getShopifyOrders($financialStatus = "")
+    public static function getShopifyOrders($financialStatus = "", $endCursor = null)
     {
         $client = self::initRequestClient();
         $orderQueryObject = self::getOrderQueryObject();
@@ -125,13 +126,24 @@ class ShopifyApiServices {
                 $financialStatusQuery = '';
         }
 
+        $first = isset($first) ? "first: $first" : "first: 200";
+        $last = isset($last) ? "last: $last" : "";
+        $before = isset($before) ? "before: \"$before\"" : "";
+        $after = isset($after) ? "after: \"$after\"" : "";
+
         $query = <<<QUERY
         query {
-            orders(first: 100, query: "$financialStatusQuery") {
+            orders($first $last $before $after query: "$financialStatusQuery" sortKey: UPDATED_AT, reverse: true) {
                 edges {
                     node {
                         $orderQueryObject
                     }
+                }
+                pageInfo {
+                    hasNextPage
+                    hasPreviousPage
+                    startCursor
+                    endCursor
                 }
             }
         }
@@ -156,7 +168,33 @@ class ShopifyApiServices {
                 return response()->json(['success' => false, 'message' => 'Error with the API', 'errors' => $order['errors']], 400);
             }
 
-            return response()->json(['success' => true, 'message' => 'Order fetched successfully', 'data' => $order['data']['orders']['edges']]);
+            $fetchedOrders = $order['data']['orders']['edges'];
+
+            $orders = array_map(function($fetchedOrders){
+                $order = $fetchedOrders['node'];
+                $order['shopify_id'] = $order['id'];
+                $order['name'] = $order['name'];
+                $order['email'] = $order['email'];
+                $order['processed_at'] = $order['processedAt'];
+                $order['data'] = json_encode($order);
+                return $order;
+            }, $fetchedOrders);
+
+            foreach($orders as $order){
+                $savedOrder = ShopifyOrder::where('shopify_id', $order['id'])->first();
+                if($savedOrder){
+                    $savedOrder->update(['processed_at' => $order['processedAt'], 'data' => json_encode($order)]);
+                } else {
+                    ShopifyOrder::create($order);
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Order fetched successfully',
+                'pageinfo' => $order['data']['orders']['pageInfo'],
+                'data' => $orders
+            ]);
         } catch (\Exception $e) {
             Log::info(
                 'Error fetching orders from Shopify',
@@ -363,12 +401,11 @@ class ShopifyApiServices {
         }
     }
 
-    public static function markShopifyOrderAsPaid(Request $request)
+    public static function markShopifyOrderAsPaid($orderId)
     {
         // INFO https://shopify.dev/docs/api/admin-graphql/2024-10/mutations/orderMarkAsPaid
 
-        Log::info('request to mark payment as paid', ['requestBody', $request->all()]);
-        $orderId = $request->input('order_id');
+        Log::info('request to mark payment as paid', ['requestBody', $orderId]);
 
         // Check if valid
         if (!$orderId) {

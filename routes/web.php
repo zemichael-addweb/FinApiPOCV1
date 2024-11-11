@@ -52,8 +52,7 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::resource( '/orders', OrderController::class);
         Route::get( '/order/compare-orders', [OrderController::class, 'compareOrders'])->name('admin.order.compare-orders');
         Route::get( '/order/get-orders', [OrderController::class, 'getOrders'])->name('admin.order.get-orders');
-        Route::resource( '/bank', BankController::class);
-        Route::resource( '/transaction', TransactionController::class);
+
         Route::get( '/users', [AdminController::class, 'users'])->name('admin.users');
         Route::post('/users/store-b2b-user', [AdminController::class, 'storeUser'])->name('admin.user.store');
         Route::get( '/users/register-b2b-user', [AdminController::class, 'registerUser'] )->name('admin.user.register');
@@ -66,14 +65,16 @@ Route::middleware(EnsureUserIsAdmin::class)
         Route::prefix('deposit')->group(function () {
             Route::get( '/admin-get-deposit', [DepositController::class, 'getDeposits'] )->name('admin.deposit.getdeposit');
         });
+        Route::resource( '/bank', BankController::class);
         Route::prefix('bank')->group(function () {
             Route::get( '/import-bank-connection', [BankController::class, 'importBankConnection'] )->name('admin.bank.import-bank-connection');
             Route::get( '/get-bank-connections', [BankController::class, 'getBankConnections'] )->name('admin.bank.get-bank-connections');
             Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
         });
+        Route::resource( '/transaction', TransactionController::class);
         Route::prefix('transaction')->group(function () {
-            Route::get( '/transactions', [BankController::class, 'transactions'] )->name('admin.bank.transactions');
-            Route::get( '/get-transactions', [BankController::class, 'getTransactions'] )->name('admin.bank.get-transactions');
+            Route::get( '/transactions', [TransactionController::class, 'transactions'] )->name('admin.transactions');
+            Route::get( '/get-transactions', [TransactionController::class, 'getTransactions'] )->name('admin.transactions.get-transactions');
         });
         Route::resource( '/webforms', WebformController::class);
         Route::prefix('webform')->group(function () {
@@ -90,10 +91,12 @@ Route::prefix('shopify')
             Route::get('get-order-by-id', [OrderController::class, 'getShopifyOrderById'])->name('shopify.order.getOrderById');
             Route::get('get-order-by-name', [OrderController::class, 'getShopifyOrderByName'])->name('shopify.order.getOrderByName');
             Route::get('get-order-by-confirmation-number', [OrderController::class, 'getShopifyOrderByConfirmationNumber'])->name('shopify.order.getOrderByConfirmationNumber');
+            Route::get('get-local-orders', [OrderController::class, 'getLocalOrders'])->name('shopify.order.get-local-orders');
             Route::post('update-order-status', [OrderController::class, 'updateShopifyPaymentStatus'])->name('shopify.order.updateStatus');
             Route::post('mark-order-paid', [OrderController::class, 'markShopifyOrderAsPaid'])->name('shopify.order.markAsPaid');
             Route::post('refund-order', [OrderController::class, 'refundOrder'])->name('shopify.order.refund');
             Route::post('void-transaction', [OrderController::class, 'voidShopifyTransaction'])->name('shopify.order.voidTransaction');
+            Route::post('link-order-to-transaction', [OrderController::class, 'linkOrderToTransaction'])->name('shopify.order.linkOrderToTransaction');
         });
     Route::prefix('payment')
         // ->middleware(VerifyShopifyRequest::class)
