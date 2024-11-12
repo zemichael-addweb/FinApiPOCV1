@@ -36,11 +36,12 @@ class VerifyFinapiForms extends Command
      */
     public function handle()
     {
-        $processedStatuses = ['COMPLETED', 'COMPLETED_WITH_ERROR', 'EXPIRED','ABORTED','CANCELLED', 'NOT_YET_OPENED'];
+        $processedStatuses = ['COMPLETED', 'COMPLETED_WITH_ERROR', 'EXPIRED','ABORTED','CANCELLED'];
 
         $loggedForms = FinapiForm::whereNotIn('status', $processedStatuses)
             ->orWhere('status', null)
             ->get();
+
 
         if(!$loggedForms  || count($loggedForms) == 0){
             $this->error('No unprocessed logged form found.');
@@ -73,7 +74,6 @@ class VerifyFinapiForms extends Command
                 $this->error('FinApi user access token not found. Please check the form_id.');
                 return;
             }
-
             switch($formType){
                 case 'BANK_CONNECTION_IMPORT':
                     $this->verifyBankConnectionForm($accessToken, $loggedForm);
@@ -105,12 +105,14 @@ class VerifyFinapiForms extends Command
 
     public function verifyBankConnectionForm($accessToken, $loggedForm){
         if (!isset($loggedForm->finapi_id)) {
+            $this->newLine();
             $this->error('No or Invalid Finapi Id Found.');
             return;
         }
         try{
             $formDetails = FinAPIService::getFromDetails($accessToken, $loggedForm->finapi_id);
         } catch (\Exception $e) {
+            $this->newLine();
             $this->error('Error while fetching access token. Please check the form_id.');
             return;
         }
@@ -118,11 +120,13 @@ class VerifyFinapiForms extends Command
         try {
             $bankConnections = FinAPIService::fetchBankConnections($accessToken, ['ids', $loggedForm->bank_connection_id]);
         } catch (\Exception $e) {
+            $this->newLine();
             $this->error('Error while fetching bank connections. Please check the form_id.', $e);
             return;
         }
 
         if (!$bankConnections) {
+            $this->newLine();
             $this->error('No bank connections found.');
             return;
         }
@@ -156,17 +160,21 @@ class VerifyFinapiForms extends Command
         $this->updateFormStatus($loggedForm, $formDetails);
 
         if (!isset($formDetails->payload->bankConnectionId)) {
+            $this->newLine();
             $this->error('No Bank Connection Id Found.' . isset($formDetails->payload->errorMessage) ? isset($formDetails->payload->errorMessage) : 'Please make sure you connected your bank using this url : ' . $formDetails->url);
             return;
         }
 
+        $this->newLine();
         $this->info('form fetched: ' . json_encode($formDetails));
 
         $loggedForm->bank_connection_id = $formDetails->payload->bankConnectionId;
         $loggedForm->save();
 
 
+        $this->newLine();
         $this->info('Done verifying and saving bank connection details!');
+        $this->newLine();
         $this->info('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
     }
 
@@ -180,11 +188,13 @@ class VerifyFinapiForms extends Command
             return;
         }
 
+        $this->newLine();
         $this->info('Fetched form details : ' . json_encode($formDetails));
 
         $updatedPayments = [];
 
         if (!isset($formDetails->payload->paymentId)) {
+            $this->newLine();
             $this->error('No Payment Found. Please make sure you pay using this url : ' . $formDetails->url);
             return;
         }
@@ -197,12 +207,14 @@ class VerifyFinapiForms extends Command
         try{
             $paymentDetails = FinAPIService::getPaymentDetails($accessToken, $paymentId);
         } catch (\Exception $e) {
+            $this->newLine();
             $this->error('Error while fetching payment details. Payment detail API call failed.');
             \Log::info('er', ['er'=>$e]);
             return;
         }
 
         if(!isset($paymentDetails->payments)) {
+            $this->newLine();
             $this->error('No Payment Found. Please make sure you pay using this url : ' . $formDetails->url);
             return;
         }
@@ -288,9 +300,13 @@ class VerifyFinapiForms extends Command
             }
         }
 
+        $this->newLine();
         $this->info('Updated Payment Details : ' . json_encode($updatedPayments));
+        $this->newLine();
         $this->info('Done verifying payment details!');
+        $this->newLine();
         $this->info('xxxxxxxxxxxxxxxxxxxxxxxxxxxx');
+        $this->newLine();
     }
 
     public function updateFormStatus($loggedForm, $formDetails){
