@@ -3,10 +3,12 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\Deposit;
 use Illuminate\Support\Facades\DB;
+use App\Models\DepositTransaction;
 use Illuminate\Support\Facades\Auth;
 
-class BankServices
+class DepositServices
 {
     public function __construct()
     {

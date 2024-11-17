@@ -40,8 +40,9 @@ class VerifyFinapiForms extends Command
 
         $loggedForms = FinapiForm::whereNotIn('status', $processedStatuses)
             ->orWhere('status', null)
+            ->limit(1)
+            ->orderBy('id', 'desc')
             ->get();
-
 
         if(!$loggedForms  || count($loggedForms) == 0){
             $this->error('No unprocessed logged form found.');
@@ -74,6 +75,7 @@ class VerifyFinapiForms extends Command
                 $this->error('FinApi user access token not found. Please check the form_id.');
                 return;
             }
+
             switch($formType){
                 case 'BANK_CONNECTION_IMPORT':
                     $this->verifyBankConnectionForm($accessToken, $loggedForm);
@@ -213,6 +215,8 @@ class VerifyFinapiForms extends Command
             return;
         }
 
+        $this->newLine();
+
         if(!isset($paymentDetails->payments)) {
             $this->newLine();
             $this->error('No Payment Found. Please make sure you pay using this url : ' . $formDetails->url);
@@ -267,7 +271,7 @@ class VerifyFinapiForms extends Command
                     $this->error('User not found.');
                     continue;
                 }
-                $userDeposit = App\Console\Commands\DepositServices::makeDeposit($payment->amount, $user->id, $finapiPayment->id);
+                $userDeposit = DepositServices::makeDeposit($payment->amount, $user->id, $finapiPayment->id);
                 if(!$userDeposit){
                     $userDeposit = Deposit::create([
                         'user_id' => $user->id,
@@ -294,9 +298,10 @@ class VerifyFinapiForms extends Command
 
         if($payment->statusV2 == 'SUCCESSFUL' && $loggedForm->order_ref_number){
             $shopifyOrder = ShopifyApiServices::getShopifyOrderByConfirmationNumber($loggedForm->order_ref_number)->getData();
+
             if($shopifyOrder && $shopifyOrder->success && isset($shopifyOrder->data->id)){
                 $shopifyOrderId = $shopifyOrder->data->id;
-                ShopifyApiServices::markShopifyOrderAsPaid($shopifyOrderId);
+                $shopifyStatus = ShopifyApiServices::markShopifyOrderAsPaid($shopifyOrderId);
             }
         }
 

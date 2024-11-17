@@ -129,7 +129,9 @@ class DepositController extends Controller
                 'expire_time' => $finApiStandalonePaymentForm->expiresAt,
                 'type' => $finApiStandalonePaymentForm->type,
             ];
-            LoggerService::logFinapiForm($formData);
+
+
+            $form = LoggerService::logFinapiForm($formData);
 
             return response()->json($finApiStandalonePaymentForm);
         }

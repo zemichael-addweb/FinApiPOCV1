@@ -26,7 +26,7 @@ class LoggerService
         return FinapiForm::create([
             'finapi_payment_id' => $paymentId,
             'finapi_user_id' => $formData['finapi_user_id'] ?? null,
-            'order_conf_number' => $formData['standing_order_id'] ?? null,
+            'order_ref_number' => $formData['order_conf_number'] ?? null,
             'purpose' => $formData['purpose'] ?? null,
             'finapi_id' => $formData['finapi_id'] ?? null,
             'form_url' => $formData['form_url'] ?? null,

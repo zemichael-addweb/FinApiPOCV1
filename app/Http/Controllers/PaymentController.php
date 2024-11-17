@@ -32,7 +32,12 @@ class PaymentController extends Controller
     // resource controller
     public function index()
     {
-        $finapiPayments = FinapiPayment::all()->map(function ($payment) {
+
+        $userId = auth()->user()->id;
+
+        $payments = FinapiPayment::where('user_id', $userId)->get();
+
+        $finapiPayments = $payments->map(function ($payment) {
             return collect($payment)->mapWithKeys(function ($value, $key) {
                 return [Str::camel($key) => $value];
             });
@@ -171,6 +176,7 @@ class PaymentController extends Controller
         $amount = $request->input('amount');
         $currency = $request->input('currency');
         $confirmationNumber = $request->input('confirmationNumber');
+
 
         $email = $request->input('email');
         $username = $request->input('username');

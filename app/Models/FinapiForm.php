@@ -22,6 +22,7 @@ class FinapiForm extends Model
         'standing_order_id',
         'error_code',
         'error_message',
+        'purpose'
     ];
 
     public function finapiUser()

@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Models\User;
 use App\Models\FinapiPayment;
 use Exception;
 use GuzzleHttp\Client;
 use stdClass;
+use Illuminate\Support\Facades\Hash;
 use App\Models\FinapiPaymentRecipient;
 use App\Models\FinapiUser;
 use App\Services\LoggerService;
@@ -124,7 +126,7 @@ class FinAPIService {
                 if(!$finApiUser) {
                     $user = auth()->user();
                     $email = $email ?? ($user ? $user->email : 'email@localhost.de');
-                    $password = $password ?? 'hellopassword';
+                    $password = $password ?? Str::random();
 
                     // Check if the FinAPI user already exists
                     $finApiUser = $user
@@ -151,6 +153,18 @@ class FinAPIService {
                                 'password' => $fetchedFinApiUser->password,
                                 'email' => $email,
                             ]);
+
+
+
+                            if($finApiUser->user_id === null) {
+                                $newUser = new User();
+                                $newUser->name = $email;
+                                $newUser->email = $email;
+                                $newUser->password = Hash::make($password);
+                                $newUser->save();
+
+                                $finApiUser->user_id = $newUser->id;
+                            }
 
                             $finApiUser->save();
                         }
