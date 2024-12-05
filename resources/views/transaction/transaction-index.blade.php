@@ -1,30 +1,11 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
-            <a
-                href="{{ route('bank.index') }}"
-                class="rounded-md px-3 py-2 border text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-            >
-                <i class="fa-solid fa-circle-left mx-2"></i> Back to Banks
-            </a>
-            <span class="mx-4 float-right">
-                {{ __('Transactions') }}
-            </span>
-        </h2>
-    </x-slot>
-
     <x-slot name="slot">
-        <div class="-mx-3 flex flex-1 m-3 p-3">
-            <nav class="-mx-3 flex flex-1 justify-start m-3">
-                <a
-                    href="{{ route('admin.bank.import-bank-connection') }}"
-                    class="rounded-md border px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                >
-                    Import Bank Connection
-                </a>
-            </nav>
+
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 class="text-title-md2 font-bold text-black dark:text-white">
+            Transactions
+            </h1>
         </div>
-        <hr>
 
         @if(!$bankConnections || !$transactions)
             <div class="flex flex-1 justify-center items-center h-96">
@@ -103,6 +84,53 @@
                 </div>
             </div>
 
+
+            <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+                <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-white uppercase bg-slate-900 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th scope="col" class="px-6 py-3">#ID</th>
+                            <th scope="col" class="px-6 py-3">Account ID</th>
+                            <th scope="col" class="px-6 py-3">Amount</th>
+                            <th scope="col" class="px-6 py-3">Purpose</th>
+                            <th scope="col" class="px-6 py-3">Counterpart Name</th>
+                            <th scope="col" class="px-6 py-3">Date</th>
+                            <th scope="col" class="px-6 py-3">View</th>
+                            <th scope="col" class="px-6 py-3">Link To Order</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="transaction in transactions" :key="transaction.id">
+                            <tr class="bg-white dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="transaction.id"></td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="transaction.accountId"></td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="numberFormat(transaction.amount) +' '+transaction.currency"></td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="transaction.purpose"></td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="transaction.counterpartName"></td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="transaction.valueDate"></td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                    <button
+                                        @click="viewTransaction(transaction.id)"
+                                        class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
+                                    >
+                                        View
+                                    </button>
+                                </td>
+                                <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                    <button
+                                        @click="linkToOrder(transaction.id)"
+                                        class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
+                                    >
+                                        Link to Order
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+
+                    </tbody>
+
+                </table>
+            </div>
             <div class="w-full">
                 <div x-show="transactions" class="w-full -mx-3 m-3 p-3">
                     <div class="overflow-x-auto">
@@ -194,7 +222,12 @@
                     class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 mt-6 overflow-y-scroll"
                     @keydown.escape.window="showViewTransactionModal = false"
                 >
+
+
+
+
                     <div class="bg-white dark:bg-slate-800 rounded-lg shadow-xl max-w-3xl w-full p-6 space-y-4">
+
                         <div class="flex justify-between items-center">
                             <h2 class="text-xl font-semibold text-slate-900 dark:text-slate-100">Transaction Details</h2>
                             <button @click="showViewTransactionModal = false" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
@@ -204,9 +237,7 @@
                         <hr class="my-2">
 
                         <!-- Modal content (webform details) -->
-                        <div class="p-2 border">
-                            <p><strong>Updated Transaction Details</strong></p>
-
+                        <div class="p-2">
                             <!-- Individual Fields -->
                             <p><strong>ID:</strong> <span x-text="selectedTransaction.id"></span></p>
                             <p><strong>Account ID:</strong> <span x-text="selectedTransaction.accountId"></span></p>
@@ -253,21 +284,32 @@
                                 &times;
                             </button>
                         </div>
-                        <hr class="my-2">
 
                         <!-- Transaction Details -->
-                        <div class="p-2 border">
-                            <p><strong>Updated Transaction Details</strong></p>
-                            <p><strong>ID:</strong> <span x-text="selectedTransaction.id"></span></p>
-                            <p><strong>Account ID:</strong> <span x-text="selectedTransaction.accountId"></span></p>
-                            <p><strong>Amount:</strong> <span x-text="numberFormat(selectedTransaction.amount)"></span></p>
-                            <p><strong>Currency:</strong> <span x-text="selectedTransaction.currency"></span></p>
-                            <p><strong>Purpose:</strong> <span x-text="selectedTransaction.purpose"></span></p>
-                            <p><strong>Counterpart Name:</strong> <span x-text="selectedTransaction.counterpartName"></span></p>
-                            <p><strong>Value Date:</strong> <span x-text="formatDate(selectedTransaction.valueDate)"></span></p>
-                        </div>
 
-                        <hr>
+                        <div class="relative overflow-x-auto shadow-md sm:rounded-lg">
+                            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                                <thead class="text-xs text-white uppercase bg-slate-900 dark:bg-gray-700 dark:text-gray-400">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3">#ID</th>
+                                        <th scope="col" class="px-6 py-3">Account ID</th>
+                                        <th scope="col" class="px-6 py-3">Amount</th>
+                                        <th scope="col" class="px-6 py-3">Purpose</th>
+                                        <th scope="col" class="px-6 py-3">Counterpart Name and Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr class="bg-white dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="selectedTransaction.id"></td>
+                                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="selectedTransaction.accountId"></td>
+                                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="numberFormat(selectedTransaction.amount) +' '+selectedTransaction.currency"></td>
+                                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="selectedTransaction.purpose"></td>
+                                        <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white" x-text="selectedTransaction.counterpartName + '('+formatDate(selectedTransaction.valueDate)+')'"></td>
+                                    </tr>
+                                </tbody>
+
+                            </table>
+                        </div>
 
                         <p><strong>Search for orders to match and link</strong></p>
                         <p>You can search by <strong>Amount, Email or id(name)</strong> of the order</p>
@@ -276,10 +318,8 @@
                             <label class="block text-slate-700 dark:text-slate-300">Select Order</label>
                             <input type="text" placeholder="Search orders..." x-model="orderSearch" class="border p-2 w-full rounded-md dark:bg-slate-700 dark:text-white">
 
-                            <select
-                                x-model="selectedOrderId"
-                                class="border p-2 w-full rounded-md dark:bg-slate-700 dark:text-white"
-                            >
+
+                            <select  x-model="selectedOrderId" class="py-3 px-4 pe-9 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
                                 <option value="" disabled>Select an order</option>
                                 <template x-for="order in sortedOrders" :key="order.id">
                                     <option :value="order.id" x-text="`Amount: €${order.data.currentTotalPriceSet.shopMoney.amount} - ID: ${order.name} - Email: ${order.email}`"></option>
@@ -287,14 +327,12 @@
                             </select>
                         </div>
 
-                        <hr>
-
-                        <p><strong>Click link order to mark the order paid</strong></p>
-
                         <!-- Action Buttons -->
                         <div class="flex justify-end space-x-2">
-                            <button @click="showLinkToOrderModal = false" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Close</button>
-                            <button @click="linkOrderToTransaction()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700" :disabled="!selectedOrderId">Link Order</button>
+
+                            <button type="button" @click="showLinkToOrderModal = false"  class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">Close</button>
+
+                            <button type="button" @click="linkOrderToTransaction()" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800" :disabled="!selectedOrderId">Link Order</button>
                         </div>
                     </div>
                 </div>

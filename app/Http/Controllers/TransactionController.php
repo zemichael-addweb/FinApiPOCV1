@@ -17,7 +17,6 @@ class TransactionController extends Controller
         try {
             $transactions = json_decode($this->getTransactions($request)->getContent());
             $bankConnections = FinapiBankConnection::all();
-
             return view('transaction.transaction-index', ['transactions' => $transactions, 'bankConnections' => $bankConnections]);
         } catch (Exception $e) {
             return response()->json(['error' => 'Failed to fetch transactions. Plese contact system admin.'], 500);
@@ -95,7 +94,7 @@ class TransactionController extends Controller
             $transactions = FinAPIService::fetchTransactions($finApiUserAccessToken->access_token, $filters);
 
             foreach($transactions->transactions as $transaction){
-                if(strpos($transaction->purpose, 'shopify_confirmation_number') !== false){
+                if(isset($transaction->purpose) && strpos($transaction->purpose, 'shopify_confirmation_number') !== false){
                     $shopify_confirmation_number = explode(':', $transaction->purpose)[1];
 
                     if($shopify_confirmation_number != 'no_confirmation_number') {
@@ -106,6 +105,7 @@ class TransactionController extends Controller
                 $savedTransaction = FinapiTransaction::where('finapi_id', $transaction->id)->first();
 
                 if(!$savedTransaction){
+
                     $savedTransaction = new FinapiTransaction([
                         'finapi_id' => $transaction->id,
                         // 'finapi_user_id' => $transaction->userId,
@@ -117,9 +117,9 @@ class TransactionController extends Controller
                         'bank_booking_date' => $transaction->bankBookingDate,
                         'amount' => $transaction->amount,
                         'currency' => $transaction->currency,
-                        'purpose' => $transaction->purpose,
-                        'counterpart_name' => $transaction->counterpartName,
-                        'type' => $transaction->type,
+                        'purpose' => $transaction->purpose ?? null,
+                        'counterpart_name' => $transaction->counterpartName ?? null,
+                        'type' => $transaction->type ?? null,
                         'shopify_confirmation_number' => isset($shopify_confirmation_number) ? $shopify_confirmation_number : null,
                         'data' => json_encode($transaction)
                     ]);
@@ -132,6 +132,7 @@ class TransactionController extends Controller
             }
 
         } catch (Exception $e) {
+            dd($e->getMessage(), $e->getLine(), $e->getFile());
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
