@@ -1,72 +1,58 @@
 <x-app-layout>
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
-            <!-- back button to go back to /bank -->
-            <a
-                href="{{ route('bank.index') }}"
-                class="rounded-md px-3 py-2 border text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-            > <i class="fa-solid fa-circle-left mx-2"></i>
-                Back to Banks
-            </a>
-            <span class="mx-4 float-right">
-                {{ __('Create Bank Connection') }}
-            </span>
-        </h2>
-    </x-slot>
-
     <x-slot name="slot">
-        <div class="flex lg:col-start-2 text-slate-800 dark:text-slate-200 m-4 p-4">
-            Bank Connection
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 class="text-title-md2 font-bold text-black dark:text-white">
+            Create Bank Connection
+            </h1>
+
+            <nav>
+                <a href="{{ route('bank.index') }}" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">View Bank Connection</a>
+            </nav>
         </div>
-        <hr>
+
 
         <div class="container mx-auto p-4" x-data="bankConnectionForm()">
-            <h1 class="text-2xl font-bold mb-4">Create a Bank Connection</h1>
             @auth
                 <p class="mb-4">You are logged in as <strong>{{ auth()->user()->name }}</strong></p>
             @endauth
             <p class="mb-4">Please fill in the details below</p>
 
-            <form @submit.prevent="submitForm">
+
+
+            <form class="max-w-sm"  @submit.prevent="submitForm">
                 @csrf
-                <div class="mb-4">
-                    <label for="bank_connection_name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bank Connection Name</label>
-                    <input type="text" id="bank_connection_name" name="bank_connection_name" x-model="bank_connection_name" required class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm">
+                <div class="mb-5">
+                    <label for="bank_connection_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Bank Connection Name</label>
+                    <input type="text" id="bank_connection_name" name="bank_connection_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"  x-model="bank_connection_name" required />
                 </div>
-
-                <div class="mb-4">
-                    <label for="max_days_for_download" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Max Days for Download</label>
-                    <input type="number" id="max_days_for_download" name="max_days_for_download" x-model="max_days_for_download" class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm">
+                <div class="mb-5">
+                    <label for="max_days_for_download" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Days for Download</label>
+                    <input type="number" id="max_days_for_download" name="max_days_for_download" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" x-model="max_days_for_download"  required />
                 </div>
-
-                <div class="mb-4">
-                    <label for="allowed_interfaces" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Allowed Interfaces</label>
-                    <select id="allowed_interfaces" name="allowed_interfaces[]" x-model="allowed_interfaces" multiple class="mt-1 block w-full border-slate-700 bg-slate-300 text-slate-900 focus:border-indigo-600 focus:ring-indigo-600 rounded-md shadow-sm">
+                <div class="mb-5">
+                    <label for="allowed_interfaces" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Allowed Interfaces</label>
+                    <select id="allowed_interfaces" name="allowed_interfaces[]" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" x-model="allowed_interfaces" required>
                         <option value="XS2A">XS2A</option>
                         <option value="FINTS_SERVER">FINTS_SERVER</option>
                         <option value="WEB_SCRAPER">WEB_SCRAPER</option>
                     </select>
+
+                </div>
+                <div class="flex items-start mb-5">
+                    <div class="flex items-center h-5">
+                    <input id="allow_test_bank" type="checkbox" value="" name="allow_test_bank" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-blue-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800" x-model="allow_test_bank"  required />
+                    </div>
+                    <label for="allow_test_bank" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Allow Test Bank</label>
                 </div>
 
-                <div class="mb-4">
-                    <label for="allow_test_bank" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Allow Test Bank</label>
-                    <input id="allow_test_bank" name="allow_test_bank" x-model="allow_test_bank" type="checkbox" class="ml-2">
-                    <span class="text-sm text-gray-600 dark:text-gray-400">Yes</span>
-                </div>
 
-                <div x-show="errorMessage" class="mb-4 text-red-600">
-                    <p x-text="errorMessage"></p>
-                </div>
-
-                <div class="mb-4">
-                    <button type="button"
-                            @click="proceedToCreateBankConnection"
-                            :disabled="loading"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                            :class="loading ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
-                            x-text="loading ? 'Processing...' : 'Create Bank Connection'">
-                    </button>
-                </div>
+                <button type="button"
+                        @click="proceedToCreateBankConnection"
+                        :disabled="loading"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+                        :class="loading ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
+                        x-text="loading ? 'Processing...' : 'Create Bank Connection'">
+                </button>
             </form>
         </div>
 

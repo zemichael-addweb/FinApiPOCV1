@@ -2,7 +2,7 @@ import './bootstrap';
 
 import "flatpickr/dist/flatpickr.min.css";
 import "alpinejs";
-import "../../public/css/satoshi.css";
+import "../../public/css/fonts.css";
 import "../../public/css/style.css";
 
 import Alpine from 'alpinejs';

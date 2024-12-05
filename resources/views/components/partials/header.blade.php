@@ -45,63 +45,6 @@
         </div>
 
         <div class="flex items-center gap-3 2xsm:gap-7">
-            <ul class="flex items-center gap-2 2xsm:gap-4">
-                <li>
-                    <!-- Dark Mode Toggler -->
-                    <label :class="darkMode ? 'bg-primary' : 'bg-stroke'"
-                        class="relative m-0 block h-7.5 w-14 rounded-full">
-                        <input type="checkbox" :value="darkMode" @change="darkMode = !darkMode"
-                            class="absolute top-0 z-50 m-0 h-full w-full cursor-pointer opacity-0" />
-                        <span :class="darkMode && '!right-1 !translate-x-full'"
-                            class="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 translate-x-0 items-center justify-center rounded-full bg-white shadow-switcher duration-75 ease-linear">
-                            <span class="dark:hidden">
-                                <i class="fa-solid fa-sun"></i>
-                            </span>
-                            <span class="hidden dark:inline-block">
-                                <i class="fa-solid fa-moon"></i>
-                            </span>
-                        </span>
-                    </label>
-                    <!-- Dark Mode Toggler -->
-                </li>
-
-                <!-- Notification Menu Area -->
-                <li class="relative" x-data="{ dropdownOpen: false, notifying: true }" @click.outside="dropdownOpen = false">
-                    <a class="relative flex h-8.5 w-8.5 items-center justify-center rounded-full border-[0.5px] border-stroke bg-gray hover:text-primary dark:border-strokedark dark:bg-meta-4 dark:text-white"
-                        href="#" @click.prevent="dropdownOpen = ! dropdownOpen; notifying = false">
-                        <span :class="!notifying && 'hidden'"
-                            class="absolute -top-0.5 right-0 z-1 h-2 w-2 rounded-full bg-meta-1">
-                            <span
-                                class="absolute -z-1 inline-flex h-full w-full animate-ping rounded-full bg-meta-1 opacity-75"></span>
-                        </span>
-
-                        <i class="fa-regular fa-bell"></i>
-                    </a>
-
-                    <!-- Dropdown Start -->
-                    <div x-show="dropdownOpen"
-                        class="absolute -right-27 mt-2.5 flex h-90 w-75 flex-col rounded-sm border border-stroke bg-white shadow-default dark:border-strokedark dark:bg-boxdark sm:right-0 sm:w-80">
-                        <div class="px-4.5 py-3">
-                            <h5 class="text-sm font-medium text-bodydark2">Notification</h5>
-                        </div>
-
-                        <ul class="flex h-auto flex-col overflow-y-auto">
-                            <li>
-                                <a class="flex flex-col gap-2.5 border-t border-stroke px-4.5 py-3 hover:bg-slate-2 dark:border-strokedark dark:hover:bg-meta-4"
-                                    href="#">
-                                    <p class="text-sm">
-                                        <span class="text-black dark:text-white">Feature</span>
-                                        Coming soon.
-                                    </p>
-                                    <p class="text-xs">Very Soon</p>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <!-- Dropdown End -->
-                </li>
-                <!-- Notification Menu Area -->
-            </ul>
 
             @if ($isLoggedIn)
                 <!-- User Area -->
