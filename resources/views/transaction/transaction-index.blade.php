@@ -18,70 +18,58 @@
 
         <!-- Table with Filter -->
         <div class="my-4 w-full text-nowrap"  x-data="transactionData()">
-            <!-- Filters Form -->
-            <div>
-                <div class="flex flex-col lg:flex-row gap-4">
-                    <div class="mb-3 flex flex-col lg:flex-row overflow-auto gap-4">
-                        <!-- Bank Connections Filter -->
-                        <div class="flex flex-1 mx-2 items-center">
-                            <label for="selectedBankConnectionIds" class="text-sm">Bank Connections</label>
-                            <input type="hidden" x-model="selectedBankConnectionIds"/>
-                            <select x-on:change="addBankConnection($event.target.value)" class="mx-4 px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-indigo-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600">
-                                <option value="">Select Bank Connection</option>
-                                <template x-for="bankConnection in bankConnections" :key="bankConnection.id">
-                                    <option x-bind:value="bankConnection.id" x-text="bankConnection.bankName"></option>
-                                </template>
-                            </select>
-                        </div>
 
-                        <!-- Account IDs Filter -->
-                        <div class="flex flex-1 mx-2 items-center">
-                            <label for="selectedAccountIds" class="text-sm">Account IDs</label>
-                            <input type="hidden" x-model="selectedAccountIdsInput"/>
-                            <select x-on:change="addAccountSelection($event.target.value)" class="mx-4 px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-indigo-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600">
-                                <option value="">Select Account ID</option>
-                                <template x-for="accountId in accountIds" :key="accountId">
-                                    <option x-bind:value="accountId" x-text="accountId"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <!-- Fetch if there is confirmation number -->
-                        <div class="flex flex-1 mx-2 items-center">
-                            <label for="confirmationNumber" class="text-sm">Confirmation Number</label>
-                            <input type="text" x-model="confirmationNumber" class="mx-4 px-4 py-2 border rounded-md focus:outline-none focus:ring focus:ring-indigo-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600">
-                        </div>
+            <!-- Filter Form -->
+            <div class="mb-4 flex flex-wrap items-center gap-4">
+                <!-- <form class="flex flex-wrap items-center gap-4"> -->
+                    <!-- Filter Dropdown -->
+                    <div>
+                        <input type="hidden" x-model="selectedBankConnectionIds"/>
+                        <select
+                        id="filter"
+                        x-on:change="addBankConnection($event.target.value)"
+                        class="border border-gray-300 rounded-lg p-2 w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Bank Connection</option>
+                            <template x-for="bankConnection in bankConnections" :key="bankConnection.id">
+                                <option x-bind:value="bankConnection.id" x-text="bankConnection.bankName"></option>
+                            </template>
+                        </select>
                     </div>
 
-                    <!-- Apply Filters Button -->
+                    <div>
+                        <input type="hidden" x-model="selectedAccountIdsInput"/>
+                        <select
+                            id="filter"
+                            x-on:change="addAccountSelection($event.target.value)"
+                            class="border border-gray-300 rounded-lg p-2 w-80 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">Account ID</option>
+                            <template x-for="accountId in accountIds" :key="accountId">
+                                <option x-bind:value="accountId" x-text="accountId"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Search Input -->
+                    <div>
+                        <input
+                        type="text"
+                        id="search"
+                        placeholder="Confirmation Number"
+                        class="border border-gray-300 rounded-lg p-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                    </div>
+
+                    <!-- Submit Button -->
                     <button
+                        type="button"
                         @click="fetchPage(1)"
-                        class="bg-indigo-600 text-white px-4 py-2 ms-auto rounded-md hover:bg-indigo-700 focus:outline-none"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                     >
                         Apply Filters
                     </button>
-                </div>
-
-                <!-- Selected Filters Display (Badges) -->
-                <div class="mt-4 flex flex-wrap gap-2">
-                    <!-- Selected Bank Connections -->
-                    <template x-for="name in selectedBankConnectionNames" :key="name">
-                        <div class="flex items-center space-x-2">
-                            <span class="px-2 py-1 border rounded-md bg-indigo-100 dark:bg-slate-700 dark:text-slate-200" x-text="name"></span>
-                            <button type="button" @click="removeBankConnection(name)" class="text-red-600 hover:text-red-800">&times;</button>
-                        </div>
-                    </template>
-                </div>
-                <!-- Selected Filters Display (Badges) -->
-                <div class="mt-4 flex flex-wrap gap-2">
-                    <!-- Selected Account IDs -->
-                    <template x-for="id in selectedAccountIds" :key="id">
-                        <div class="flex items-center space-x-2">
-                            <span class="px-2 py-1 border rounded-md bg-indigo-100 dark:bg-slate-700 dark:text-slate-200" x-text="id"></span>
-                            <button type="button" @click="removeAccountSelection(id)" class="text-red-600 hover:text-red-800">&times;</button>
-                        </div>
-                    </template>
-                </div>
+                <!-- </form> -->
             </div>
 
 
@@ -132,55 +120,6 @@
                 </table>
             </div>
             <div class="w-full">
-                <div x-show="transactions" class="w-full -mx-3 m-3 p-3">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full bg-white dark:bg-slate-900 border border-slate-800 dark:border-slate-100">
-                            <thead>
-                                <tr>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">ID</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Account ID</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Amount</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Currency</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Purpose</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Counterpart Name</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Date</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">View</th>
-                                    <th class="px-6 py-3 border-b text-left text-xs font-medium text-slate-500 dark:text-slate-100 uppercase">Link To Order</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <template x-for="transaction in transactions" :key="transaction.id">
-                                    <tr class="bg-slate-50 dark:bg-slate-800 border-b  border-slate-900 dark:border-slate-50 text-nowrap">
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="transaction.id"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="transaction.accountId"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="numberFormat(transaction.amount)"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="transaction.currency"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="transaction.purpose"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="transaction.counterpartName"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100" x-text="formatDate(transaction.valueDate)"></td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100 text-nowrap">
-                                            <button
-                                                @click="viewTransaction(transaction.id)"
-                                                class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
-                                            >
-                                                View
-                                            </button>
-                                        </td>
-                                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-100">
-                                            <button
-                                                @click="linkToOrder(transaction.id)"
-                                                class="ml-2 text-white bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
-                                            >
-                                                Link to Order
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </template>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
                 <!-- Pagination -->
                 <div class="mt-4 flex items-center justify-between">
                     <div class="text-sm text-slate-500">
