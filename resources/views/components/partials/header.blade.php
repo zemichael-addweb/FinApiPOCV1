@@ -36,7 +36,7 @@
             </button>
             <!-- Hamburger Toggle BTN -->
             <a class="block flex-shrink-0 lg:hidden" href="#">
-                <img width="176" height="32" src="{{ asset('images/logo/fin-API-Logo_RGB.png') }}" alt="Logo" />
+                <img width="176" height="32" src="{{ asset('images/logo/terd_logo.png') }}" alt="Logo" />
             </a>
         </div>
 

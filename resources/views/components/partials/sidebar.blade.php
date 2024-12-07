@@ -12,7 +12,7 @@
 
         <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
             <a class="m-auto" href="/">
-                <img width="176" height="32" src="{{ asset('images/logo/fin-API-Logo_RGB.png') }}" alt="Logo" />
+                <img width="100" height="32" src="{{ asset('images/logo/terd_logo.png') }}" alt="Logo" />
             </a>
             <!-- Sidebar Menu -->
             <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{ selected: '{{ $pageTitle ?? '' }}' }">
@@ -37,7 +37,7 @@
                             <!-- Menu Item Dashboard -->
 
                             <!-- Menu Item Orders -->
-                            <li>
+                            <!-- <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                     href="/orders"
                                     @click="selected = 'orders'"
@@ -45,7 +45,7 @@
                                     <i class="fa fa-brands fa-shopify"></i>
                                     Orders
                                 </a>
-                            </li>
+                            </li> -->
                             <!-- Menu Item Orders -->
                             <!-- Menu Item Bank -->
                             <li>
@@ -81,7 +81,7 @@
                             </li>
                             <!-- Menu Users Settings -->
                             <!-- Menu Webforms -->
-                            <li>
+                            <!-- <li>
                                 <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                     href="/webforms"
                                     @click="selected = 'webforms'"
@@ -89,7 +89,7 @@
                                     <i class="fa-solid fa-table-list"></i>
                                     Webforms
                                 </a>
-                            </li>
+                            </li> -->
                             <!-- Menu Webforms -->
                             <!-- Menu Item -->
                             <li>
@@ -106,7 +106,7 @@
                         @endif
 
                         <!-- Menu Item Deposits -->
-                        <li>
+                        <!-- <li>
                             <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                 href="/deposits"
                                 @click="selected = 'deposits'"
@@ -114,10 +114,10 @@
                                 <i class="fa-solid fa-hand-holding-dollar"></i>
                                 Deposits
                             </a>
-                        </li>
+                        </li> -->
 
                         <!-- Menu Item payments -->
-                        <li>
+                        <!-- <li>
                             <a class="group relative flex items-center gap-2.5 rounded-sm px-4 py-2 font-medium text-bodydark1 duration-300 ease-in-out hover:bg-graydark dark:hover:bg-meta-4"
                                 href="{{ route('payments.index') }}"
                                 @click="selected = 'payments'"
@@ -125,19 +125,12 @@
                                 <i class="fa-solid fa-money-bill-wave"></i>
                                 Payments
                             </a>
-                        </li>
+                        </li> -->
                         <!-- Menu Item payemnts -->
                     </ul>
                 </div>
             </nav>
             <!-- Sidebar Menu -->
-
-            <!-- Promo Box -->
-            <div
-                class="mx-auto mb-10 w-full max-w-60 rounded-sm border border-strokedark bg-boxdark px-4 py-6 text-center shadow-default">
-                <!-- Promo HERE -->
-            </div>
-            <!-- Promo Box -->
         </div>
     </aside>
 @else

@@ -9,6 +9,7 @@ use GuzzleHttp\Client;
 use stdClass;
 use Illuminate\Support\Facades\Hash;
 use App\Models\FinapiPaymentRecipient;
+use App\Models\FinapiBankConnection;
 use App\Models\FinapiUser;
 use App\Services\LoggerService;
 use Carbon\Carbon;
@@ -743,6 +744,15 @@ class FinAPIService {
 
         $purposeFilter = $request->input('confirmationNumber') ? $request->input('confirmationNumber') : $request->input('purpose');
 
+        $accountIds = null;
+        if($request->get('accountIds')){
+            $account = FinapiBankConnection::where('id', $request->get('accountIds'))->first();
+            $data = json_decode($account->data, true);
+            if(isset($data['accountIds']) && count($data['accountIds']) > 0) {
+                $accountIds = implode(', ', $data['accountIds']);
+            }
+        }
+
         $filters = [
             'ids' => $request->input('ids') ? join(', ', $request->input('ids')) : null,
             'view' => $request->input('view', 'userView'),
@@ -751,7 +761,7 @@ class FinAPIService {
             'counterpart' => $request->input('counterpart'),
             'purpose' => $purposeFilter,
             'currency' => $request->input('currency'),
-            'accountIds' => $request->input('accountIds') ? join(', ', $request->input('accountIds')) : null,
+            'accountIds' => $accountIds,
             'minBankBookingDate' => $request->input('minBankBookingDate'),
             'maxBankBookingDate' => $request->input('maxBankBookingDate'),
             'minFinapiBookingDate' => $request->input('minFinapiBookingDate'),

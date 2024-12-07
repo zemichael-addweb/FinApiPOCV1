@@ -37,7 +37,7 @@
                         </select>
                     </div>
 
-                    <div>
+                    <!-- <div>
                         <input type="hidden" x-model="selectedAccountIdsInput"/>
                         <select
                             id="filter"
@@ -49,16 +49,17 @@
                                 <option x-bind:value="accountId" x-text="accountId"></option>
                             </template>
                         </select>
-                    </div>
+                    </div> -->
 
                     <!-- Search Input -->
                     <div>
                         <input
-                        type="text"
-                        id="search"
-                        placeholder="Confirmation Number"
-                        class="border border-gray-300 rounded-lg p-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
+                            type="text"
+                            id="search"
+                            x-model="confirmationNumber"
+                            placeholder="Purpose"
+                            class="border border-gray-300 rounded-lg p-2 w-64 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
                     </div>
 
                     <!-- Submit Button -->
@@ -372,9 +373,11 @@
 
                     fetchPage(page) {
                         showLoading();
+                        //this.confirmationNumber = document.getElementById('search').value;
+
                         // let accountIdArray = this.accountIds.split(',').map(Number);
                         axios.get("{{ route('admin.transactions.get-transactions') }}", {
-                            params: { page: page, perPage: this.perPage, confirmationNumber:this.confirmationNumber, search: this.search, currency: this.currency, accountIds: this.selectedAccountIds, maxImportDate: this.maxImportDate }
+                            params: { page: page, perPage: this.perPage, confirmationNumber:this.confirmationNumber, search: this.search, currency: this.currency, accountIds: this.selectedBankConnectionIds, maxImportDate: this.maxImportDate }
                         })
                         .then(response => {
                             console.log('Transactions:', response.data.transactions)

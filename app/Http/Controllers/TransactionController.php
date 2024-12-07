@@ -91,6 +91,7 @@ class TransactionController extends Controller
         }
 
         try {
+
             $transactions = FinAPIService::fetchTransactions($finApiUserAccessToken->access_token, $filters);
 
             foreach($transactions->transactions as $transaction){

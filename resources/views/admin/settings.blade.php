@@ -1,12 +1,12 @@
 <x-app-layout>
-    <x-slot name="header">
+    <!-- <x-slot name="header">
         <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
             {{ __('Settings') }}
         </h2>
-    </x-slot>
+    </x-slot> -->
 
     <x-slot name="slot">
-        <div class="-mx-3 flex flex-1 m-3 p-3">
+        <!-- <div class="-mx-3 flex flex-1 m-3 p-3">
             <nav class="-mx-3 flex flex-1 justify-start m-3">
                 <a
                     href="{{ route('payments.create') }}"
@@ -34,11 +34,12 @@
                 </a>
             </nav>
         </div>
-        <hr>
-        <div class="flex lg:col-start-2 text-slate-800 dark:text-slate-200 m-4 p-4">
-            Settings
+        <hr> -->
+        <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 class="text-title-md2 font-bold text-black dark:text-white">
+                Settings
+            </h1>
         </div>
         <span class="flex flex-1 justify-center items-center h-96 text-2xl text-slate-400 dark:text-slate-500">Coming Soon</span>
-        <hr>
     </x-slot>
 </x-app-layout>
