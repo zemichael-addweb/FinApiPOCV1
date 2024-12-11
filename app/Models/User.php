@@ -20,7 +20,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role'
+        'role',
+        'google2fa_secret',
+        'google2fa_verified'
     ];
 
     /**

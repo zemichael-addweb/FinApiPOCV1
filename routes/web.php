@@ -15,6 +15,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WebformController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\VerifyShopifyRequest;
+use App\Http\Controllers\TwoFactorController;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -44,6 +45,9 @@ Route::group(['middleware'=>['auth', 'verified']], function () {
         Route::post( '/pay-from-deposit', [DepositController::class, 'makePaymentFromDeposit'] )->name('deposit.pay-from-deposit');
     });
     Route::post('/deposits/redirect-to-deposit-form', [DepositController::class, 'redirectToFinAPIPaymentForm'])->name('shopify.deposit.redirect-to-fin');
+
+    Route::get('/setup-2fa', [TwoFactorController::class, 'index'])->name('setup-2fa');
+    Route::post('/verify-2fa', [TwoFactorController::class, 'verify'])->name('verify-2fa');
 });
 
 Route::middleware(EnsureUserIsAdmin::class)
