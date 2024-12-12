@@ -18,7 +18,8 @@
                             <div class="flex justify-center items-center mb-6">
                                 <div class="border-2 border-dashed border-gray-300 rounded-lg w-32 h-32 flex items-center justify-center">
                         <span class="text-gray-400">
-                            {!! $qr !!}
+                            <img src="{!! $qr !!}" />
+
                         </span>
                                 </div>
                             </div>

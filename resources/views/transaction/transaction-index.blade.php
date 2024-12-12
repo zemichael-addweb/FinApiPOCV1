@@ -256,7 +256,7 @@
                         <!-- Searchable Dropdown for Orders -->
                         <div class="max-w-full flex flex-col space-y-2">
                             <label class="block text-slate-700 dark:text-slate-300">Select Order</label>
-                            <input type="text" placeholder="Search orders..." x-model="orderSearch" class="border p-2 w-full rounded-md dark:bg-slate-700 dark:text-white">
+                            <!-- <input type="text" placeholder="Search orders..." x-model="orderSearch" class="border p-2 w-full rounded-md dark:bg-slate-700 dark:text-white"> -->
 
 
                             <select  x-model="selectedOrderId" class="py-3 px-4 pe-9 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none dark:bg-neutral-900 dark:border-neutral-700 dark:text-neutral-400 dark:placeholder-neutral-500 dark:focus:ring-neutral-600">
@@ -533,7 +533,7 @@
                                 this.showLinkToOrderModal = false;
                                 this.fetchPage(this.page);
                             } else {
-                                alert('Failed to link order');
+                                alert(data.message);
                             }
                         })
                         .catch(error => {

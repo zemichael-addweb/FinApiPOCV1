@@ -5,7 +5,8 @@
     $isAdmin = $isLoggedIn && $userRole === 'admin';
 @endphp
 
-<header class="sticky top-0 z-999 flex w-full bg-white drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none">
+<header class="sticky top-0 z-999 flex w-full bg-black drop-shadow-1 dark:bg-boxdark dark:drop-shadow-none">
+
     <div class="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11">
         <div class="flex items-center gap-2 sm:gap-4 lg:hidden">
             <!-- Hamburger Toggle BTN -->
@@ -51,10 +52,10 @@
                 <div class="relative" x-data="{ dropdownOpen: false }" @click.outside="dropdownOpen = false">
                     <a class="flex items-center gap-4" href="#" @click.prevent="dropdownOpen = ! dropdownOpen">
                         <span class="hidden text-right lg:block">
-                            <span class="block text-sm font-medium text-black dark:text-white">
+                            <span class="block text-sm font-medium text-white dark:text-white">
                                 {{ Auth::user() ? Auth::user()->name : 'Guest User' }}
                             </span>
-                            <span class="block text-xs font-medium">{{ Auth::user() ? Auth::user()->role : 'Guest' }}</span>
+                            <span class="block text-white text-xs font-medium">{{ Auth::user() ? Auth::user()->role : 'Guest' }}</span>
                         </span>
 
                         <img class="h-12 w-12 rounded-full" src="{{ asset('images/user/user.jpeg') }}" alt="User" />
@@ -92,21 +93,9 @@
                 </div>
                 <!-- User Area -->
             @else
-                @if (Route::has('login'))
-                    <div class="mx-4 ms-4 flex flex-1 gap-4 text-nowrap">
-                        <nav class="-mx-3 ms-4 flex flex-1 gap-4 justify-end m-3 border rounded-md border-slate-600 text-nowrap">
-                            <a href="{{ route('payments.create') }}"
-                                class="rounded-md px-3 py-2 text-black  ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
-                                Make Payment
-                            </a>
-                            <hr class="h-full w-[1px] bg-slate-500">
-                            <a href="{{ route('login') }}"
-                                class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">
-                                Log in
-                            </a>
-                        </nav>
-                    </div>
-                @endif
+                <a class="m-auto" href="/">
+                    <img width="180" src="{{ asset('images/logo/terd_logo.png') }}" alt="Logo" />
+                </a>
             @endif
         </div>
     </div>

@@ -1,17 +1,5 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-grow">
-            <span class="">{{ __('Payment') }}</span>
-            <a class="ms-auto" href="{{route('payments.create')}}">Make Payment</a>
-        </div>
-    </x-slot>
-
     <x-slot name="slot">
-        <div class="flex lg:col-start-2 text-slate-800 dark:text-slate-200 m-4 p-4">
-            Payments
-        </div>
-        <hr>
-
         <div class="container mx-auto p-4" x-data="paymentForm()">
             <h1 class="text-2xl font-bold mb-4">Make a payment</h1>
 
@@ -95,10 +83,11 @@
                     <button
                         @click="getOrderInfo"
                         :disabled="loading || !confirmationNumber"
-                        class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                         :class="loading || !confirmationNumber ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
                         x-text="loading ? 'Fetching...' : 'Get Order Information'">
                     </button>
+                    <a href="/" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Go Back</a>
                 </div>
 
                 <!-- Display Error -->
@@ -156,6 +145,7 @@
                     >
                         Proceed to Payment
                     </button>
+                    <a href="/" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Go Back</a>
                 </div>
 
                 <!-- Display Error -->
@@ -186,16 +176,17 @@
                         <button
                             @click="getOrderInfo('deposit')"
                             :disabled="loading || !confirmationNumber"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                             :class="loading || !confirmationNumber ? 'cursor-not-allowed bg-slate-700 hover:bg-slate-900' : 'cursor-pointer'"
                             x-text="loading ? 'Fetching...' : 'Get Order Information'">
                         </button>
                         <button
                             @click="clearOrderInfo('deposit')"
                             x-show="orderData.id"
-                            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded cursor-pointer"
+                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800"
                             x-text="loading ? 'Fetching...' : 'Clear Order Information'">
                         </button>
+                        <a href="/" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800">Go Back</a>
                     </div>
 
                     <!-- Display Error -->

@@ -3,22 +3,22 @@
         class="absolute left-0 top-0 z-9999 flex h-screen w-72.5 flex-col overflow-y-hidden bg-black duration-300 ease-linear dark:bg-boxdark lg:static lg:translate-x-0"
         @click.outside="sidebarToggle = false">
         <!-- SIDEBAR HEADER -->
-        <div class="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
+        <!-- <div class="flex items-center justify-between gap-2 px-6 py-5.5 lg:py-6.5">
             <button class="block lg:hidden" @click.stop="sidebarToggle = !sidebarToggle">
                 <i class="fa-solid fa-arrow-left"></i>
             </button>
-        </div>
+        </div> -->
         <!-- SIDEBAR HEADER -->
 
         <div class="no-scrollbar flex flex-col overflow-y-auto duration-300 ease-linear">
             <a class="m-auto" href="/">
-                <img width="100" height="32" src="{{ asset('images/logo/terd_logo.png') }}" alt="Logo" />
+                <img class="mt-4" width="250" src="{{ asset('images/logo/terd_logo.png') }}" alt="Logo" />
             </a>
             <!-- Sidebar Menu -->
             <nav class="mt-5 px-4 py-4 lg:mt-9 lg:px-6" x-data="{ selected: '{{ $pageTitle ?? '' }}' }">
                 <!-- Customer Menu Group -->
                 <div>
-                    <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">Customer Menu</h3>
+                    <!-- <h3 class="mb-4 ml-4 text-sm font-medium text-bodydark2">Customer Menu</h3> -->
 
                     <ul class="mb-6 flex flex-col gap-1.5">
                         @if(Auth()->user())

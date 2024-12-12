@@ -16,6 +16,7 @@ use App\Http\Controllers\WebformController;
 use App\Http\Middleware\EnsureUserIsAdmin;
 use App\Http\Middleware\VerifyShopifyRequest;
 use App\Http\Controllers\TwoFactorController;
+use App\Http\Middleware\TwoFactorVerified;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -50,7 +51,7 @@ Route::group(['middleware'=>['auth', 'verified']], function () {
     Route::post('/verify-2fa', [TwoFactorController::class, 'verify'])->name('verify-2fa');
 });
 
-Route::middleware(EnsureUserIsAdmin::class)
+Route::middleware([EnsureUserIsAdmin::class, TwoFactorVerified::class])
     ->group(function () {
         Route::resource('/settings/finapi-payment-recipient', FinapiPaymentRecipientController::class);
         Route::resource( '/orders', OrderController::class);
