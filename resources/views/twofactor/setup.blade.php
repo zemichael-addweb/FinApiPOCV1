@@ -25,7 +25,7 @@
                             </div>
 
                             <label for="2fa-code" class="block text-sm font-medium text-gray-700">Enter 2FA Code</label>
-                            <input type="text" id="2fa-code" name="2fa-code" placeholder="123456"
+                            <input type="text" id="2fa-code" name="2fa-code" placeholder="* * * * * *"
                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm mb-4" x-model="setupCode" required>
 
                             <div class="flex justify-end space-x-4">
@@ -70,6 +70,7 @@
                             .then(data => {
                                 this.loading = false;
                                 console.log(data);
+                                window.location.reload();
                                 // if (data.url) {
                                 //     window.location.href = data.url;
                                 // } else if (data.error) {

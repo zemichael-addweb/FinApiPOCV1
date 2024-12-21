@@ -76,10 +76,12 @@ Route::middleware([EnsureUserIsAdmin::class, TwoFactorVerified::class])
             Route::get( '/get-bank-connections', [BankController::class, 'getBankConnections'] )->name('admin.bank.get-bank-connections');
             Route::post( '/redirect-to-import-bank-connection-form', [BankController::class, 'redirectToImportBankConnectionForm'] )->name('admin.bank.redirect-to-import-bank-connection-form');
         });
+        Route::get( '/search-shopify-order', [TransactionController::class, 'searchOrders'] )->name('admin.search-orders');
         Route::resource( '/transaction', TransactionController::class);
         Route::prefix('transaction')->group(function () {
             Route::get( '/transactions', [TransactionController::class, 'transactions'] )->name('admin.transactions');
             Route::get( '/get-transactions', [TransactionController::class, 'getTransactions'] )->name('admin.transactions.get-transactions');
+
         });
         Route::resource( '/webforms', WebformController::class);
         Route::prefix('webform')->group(function () {

@@ -688,6 +688,7 @@ class FinAPIService {
         $responseCode = $response->getStatusCode();
         $responseBody = $response->getBody()->getContents();
 
+
         LoggerService::logFinapiRequest($url, ['X-Request-Id' =>  $requestId], ['query'=> $filters], $responseCode, $responseBody, $requestId);
 
         if ($responseCode == 200) {

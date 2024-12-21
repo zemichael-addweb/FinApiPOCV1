@@ -135,9 +135,10 @@ class OrderController extends Controller
 
     public function linkOrderToTransaction (Request $request)
     {
+
         $validated = $request->validate([
-            'order_shopify_id' => 'required|exists:shopify_orders,shopify_id',
-            'transaction_finapi_id' => 'required|exists:finapi_transactions,finapi_id',
+            'order_id' => 'required',
+            'transaction_id' => 'required',
         ]);
 
         $shopifyOrder = ShopifyOrder::where('shopify_id', $validated['order_shopify_id'])->first();

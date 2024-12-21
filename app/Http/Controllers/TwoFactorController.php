@@ -37,7 +37,7 @@ class TwoFactorController extends Controller
             $data = ['secret' => $secretKey, 'qr' => $QRImage, 'verified' => false];
 
         }
-        
+
         return view("twofactor.setup", $data);
     }
 

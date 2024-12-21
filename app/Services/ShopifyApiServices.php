@@ -7,10 +7,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Shopify\Clients\Graphql;
 use Shopify\Context;
+use GuzzleHttp\Client;
+
 
 class ShopifyApiServices {
     public function __construct() {
         //
+    }
+
+    public static function getClient(): Client
+    {
+        return new Client([
+          'base_uri' => 'https://'.config('shopify.test_shop_domain').'/admin/api/2023-10/',
+          'headers' => [
+            'X-Shopify-Access-Token' => config('shopify.access_token'),
+            'Content-Type' => 'application/json',
+          ],
+        ]);
     }
 
     public static function getOrderQueryObject() {
@@ -612,6 +625,14 @@ class ShopifyApiServices {
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
+    }
+
+    public static function getOrders($filters = []) {
+        $client = self::getClient();
+        $query = http_build_query($filters);
+        //dd($query);
+        $response = $client->get("orders.json?$query");
+        return json_decode($response->getBody(), true);
     }
 
 }

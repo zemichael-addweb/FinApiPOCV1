@@ -1,10 +1,4 @@
 <x-app-layout>
-    <!-- <x-slot name="header">
-        <h2 class="font-semibold text-xl text-slate-800 dark:text-slate-200 leading-tight">
-            {{ __('Settings') }}
-        </h2>
-    </x-slot> -->
-
     <x-slot name="slot">
         <!-- <div class="-mx-3 flex flex-1 m-3 p-3">
             <nav class="-mx-3 flex flex-1 justify-start m-3">
